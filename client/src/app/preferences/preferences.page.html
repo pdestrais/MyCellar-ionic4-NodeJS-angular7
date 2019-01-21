@@ -1,0 +1,35 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>
+      preferences
+    </ion-title>
+    <ion-buttons slot="start">
+      <ion-back-button icon="arrow-round-back"></ion-back-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content padding>
+  <ion-grid>
+    <ion-row justify-content-center>
+      <ion-col align-self-center size-md="6" size-lg="5" size-xs="12">
+        <div padding>
+          <ion-item>
+            <ion-label position="stacked">Remote Cloudant Database URL</ion-label>
+            <ion-input type="text" [(ngModel)]="remoteDBURL" (ngModelChange)="checkURLValidity()" placeholder="https://userid:password@url/db"
+              clear-input="true"></ion-input>
+          </ion-item>
+        </div>
+        <ion-button expand="full" [disabled]="!valid" (click)="syncWithRemoteDB()">
+          <ion-icon slot="start" class="bigger" src="assets/icon/sync.svg"></ion-icon>
+          Sync local <br> with remote DB
+        </ion-button>
+        <ion-button expand="full" [disabled]="!valid" (click)="replAndSyncWithRemoteDB()">
+          <ion-icon slot="start" class="bigger" src="assets/icon/replAndSync.svg"></ion-icon>
+          Overwrite local <br> with remote DB
+        </ion-button>
+      </ion-col>
+    </ion-row>
+    <ion-row *ngIf="loading">Loading...</ion-row>
+  </ion-grid>
+</ion-content>
