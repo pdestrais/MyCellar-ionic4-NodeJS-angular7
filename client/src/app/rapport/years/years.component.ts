@@ -14,13 +14,13 @@ const debug = Debugger('app:rapport:years');
 	styleUrls: [ './years.component.scss' ]
 })
 export class YearsComponent implements OnInit {
-	private typeView: string;
+	public typeView: string;
 	private wines: Array<VinModel>;
-	private elementList: Array<any>;
+	public elementList: Array<any>;
 	private elementListType: string;
-	private type: string;
-	private origine: string;
-	private breadcrumb: Array<any> = [];
+	public type: string;
+	public origine: string;
+	public breadcrumb: Array<any> = [];
 
 	constructor(private route: ActivatedRoute, private pouchdbService: PouchdbService) {}
 

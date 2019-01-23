@@ -108,6 +108,11 @@ export class HomePage implements OnInit {
 		this.setFilteredItems();
 	}
 
+	cancelSearch() {
+		this.searchTerm = '';
+		this.filteredWines = [];
+	}
+
 	setFilteredItems() {
 		this.filteredWines = this.wines.filter((item) => {
 			if (this.isInStock)

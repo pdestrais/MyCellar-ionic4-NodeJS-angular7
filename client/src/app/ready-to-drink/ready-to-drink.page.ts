@@ -13,7 +13,7 @@ const debug = Debugger('app:readytodrink');
 	styleUrls: [ './ready-to-drink.page.scss' ]
 })
 export class ReadyToDrinkPage implements OnInit {
-	private readyToDrinkList: Array<VinModel>;
+	public readyToDrinkList: Array<VinModel>;
 
 	constructor(private router: Router, private PouchdbService: PouchdbService) {}
 

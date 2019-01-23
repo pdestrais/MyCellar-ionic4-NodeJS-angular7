@@ -14,10 +14,10 @@ const debug = Debugger('app:rapport:types');
 	styleUrls: [ './types.component.scss' ]
 })
 export class TypesComponent implements OnInit {
-	private typeView: string;
+	public typeView: string;
 	private wines: Array<VinModel>;
-	private elementList: Array<any>;
-	private elementListType: string;
+	public elementList: Array<any>;
+	public elementListType: string;
 
 	constructor(private route: ActivatedRoute, private pouchdbService: PouchdbService) {}
 

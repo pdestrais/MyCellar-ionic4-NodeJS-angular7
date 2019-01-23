@@ -16,11 +16,11 @@ const debug = Debugger('app:rapport:wines');
 export class WinesComponent implements OnInit {
 	private typeView: string;
 	private wines: Array<VinModel>;
-	private filteredWines: Array<VinModel>;
+	public filteredWines: Array<VinModel>;
 	private type: string;
 	private year: string;
 	private origine: string;
-	private breadcrumb: Array<any>;
+	public breadcrumb: Array<any>;
 
 	constructor(private router: Router, private route: ActivatedRoute, private pouchdbService: PouchdbService) {}
 

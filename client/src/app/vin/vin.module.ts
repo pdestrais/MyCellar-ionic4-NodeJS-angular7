@@ -5,7 +5,7 @@ import { Routes, RouterModule } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { IonicModule } from '@ionic/angular';
 
-import { VinPage, ModalPage, AddPhotoModalPage } from './vin.page';
+import { VinPage, ModalPage } from './vin.page';
 
 const routes: Routes = [
 	{
@@ -24,7 +24,7 @@ const routes: Routes = [
 		TranslateModule
 	],
 	providers: [],
-	entryComponents: [ ModalPage, AddPhotoModalPage ],
-	declarations: [ VinPage, ModalPage, AddPhotoModalPage ]
+	entryComponents: [ ModalPage ],
+	declarations: [ VinPage, ModalPage ]
 })
 export class VinPageModule {}

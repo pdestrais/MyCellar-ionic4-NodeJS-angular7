@@ -14,6 +14,8 @@ import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { AppComponent } from './app.component';
 import { AppRoutingModule } from './app-routing.module';
 import { MultiLevelSideMenuComponent } from './multi-level-side-menu/multi-level-side-menu.component';
+import { ServiceWorkerModule } from '@angular/service-worker';
+import { environment } from '../environments/environment';
 
 @NgModule({
 	declarations: [ AppComponent, MultiLevelSideMenuComponent ],
@@ -30,7 +32,8 @@ import { MultiLevelSideMenuComponent } from './multi-level-side-menu/multi-level
 				useFactory: createTranslateLoader,
 				deps: [ HttpClient ]
 			}
-		})
+		}),
+		ServiceWorkerModule.register('ngsw-worker.js', { enabled: environment.production })
 	],
 	providers: [ StatusBar, SplashScreen, { provide: RouteReuseStrategy, useClass: IonicRouteStrategy } ],
 	bootstrap: [ AppComponent ]

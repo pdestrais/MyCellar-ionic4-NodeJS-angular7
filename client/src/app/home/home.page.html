@@ -13,8 +13,8 @@
   <div id="search-container1">
     <!--      <ion-searchbar placeholder="" name="" id="search-search1" [(ngModel)]="searchTerm" [formControl]="searchControl" (ionInput)="onSearchInput()"></ion-searchbar>
  -->
-    <ion-searchbar placeholder="" debounce="300" showCancelButton=true [(ngModel)]="searchTerm" (ionChange)="setFilteredItems()"
-      (ionCancel)="cancelSearchTag()"></ion-searchbar>
+    <ion-searchbar placeholder="" debounce="300" showCancelButton=false [(ngModel)]="searchTerm" (ionChange)="setFilteredItems()"
+      (ionCancel)="cancelSearch()"></ion-searchbar>
 
   </div>
   <div *ngIf="loading" class="spinner-container">

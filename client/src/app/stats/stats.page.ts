@@ -18,15 +18,15 @@ export class StatsPage implements OnInit {
 	private total: number = 0;
 	private dataset: Array<any> = [];
 	private vins: Array<VinModel>;
-	private from: number = 0;
-	private to: number = 1;
+	public from: number = 0;
+	public to: number = 1;
 	private margin: any;
 	private width: number;
 	private height: number;
-	private fromOptions: Array<any>;
-	private toOptions: Array<any>;
+	public fromOptions: Array<any>;
+	public toOptions: Array<any>;
 	private colors: any;
-	private ready: boolean = false;
+	public ready: boolean = false;
 
 	constructor(
 		public router: Router,

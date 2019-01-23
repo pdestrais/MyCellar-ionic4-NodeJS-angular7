@@ -1,18 +1,7 @@
 import { Subject } from 'rxjs';
 import { TranslateService } from '@ngx-translate/core';
-import {
-	Component,
-	OnInit,
-	OnDestroy,
-	AfterViewInit,
-	Input,
-	ElementRef,
-	ViewChild,
-	NgZone,
-	EventEmitter
-} from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, Input, ElementRef, ViewChild, NgZone } from '@angular/core';
 import { NavController, NavParams, AlertController, ModalController } from '@ionic/angular';
-import { OverlayEventDetail } from '@ionic/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { PouchdbService } from '../services/pouchdb.service';
 import { VinModel, AppellationModel, OrigineModel, TypeModel } from '../models/cellar.model';
@@ -51,7 +40,7 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 	private canvasHeight: number = 200;
 	private canvasWidth: number = 150;
 	private url: string = '';
-	private selectedImg: string = '';
+	public selectedImg: string = '';
 	/**
   * 'plug into' DOM canvas element using @ViewChild
   */
@@ -386,15 +375,6 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 		this.navCtrl.goBack();
 	}
 
-	public selectImage() {
-		this.modalCtrl.create({ component: AddPhotoModalPage }).then(async (modal) => {
-			modal.present();
-			modal.onDidDismiss().then((result: OverlayEventDetail) => {
-				this.vin.photo = result.data.selectedFile;
-				this.selectedImg = result.data.selectedFile.name;
-			});
-		});
-	}
 	public showHistory() {
 		this.modalCtrl.create({ component: ModalPage, componentProps: { vin: this.vin } }).then((modal) => {
 			modal.present();
@@ -577,82 +557,5 @@ export class ModalPage {
 	constructor(private modalCtrl: ModalController) {}
 	dismiss() {
 		this.modalCtrl.dismiss();
-	}
-}
-
-@Component({
-	template: `
-  <ion-header>
-    <ion-toolbar>
-      <ion-buttons slot="start">
-        <ion-menu-button></ion-menu-button>
-      </ion-buttons>
-      <ion-title>
-        {{'wine.history' | translate }}
-      </ion-title>
-    </ion-toolbar>
-  </ion-header>
-  <ion-content>
-	<ion-item id="vin-input15">
-		<ion-label>
-			Photo
-		</ion-label>
-		<ion-input #ionInputElRef [(ngModel)]="vin.photo" type="file" accept="image/*" placeholder="" [ngModelOptions]="{standalone: true}"
-			(ionChange)="showImage($event)"></ion-input>
-	</ion-item>
-	<div class="ion-canvas">
-		<canvas #canvas height="400" width="300"></canvas>
-	</div>
-	<ion-button style="margintop: 20px" color="primary" expand="full" (click)="dismiss()">
-	{{'general.select' | translate }}
-</ion-button>
-
-</ion-content>
-  `
-})
-export class AddPhotoModalPage {
-	private ctx: any;
-	private canvas: any;
-	private canvasHeight: number = 200;
-	private canvasWidth: number = 150;
-	private file;
-
-	@ViewChild('canvas') canvasEl: ElementRef;
-	/** Workaround to access native HTML input element inside ion-input to access files information */
-	@ViewChild('ionInputElRef', { read: ElementRef })
-	ionInputElRef: ElementRef;
-
-	constructor(private modalCtrl: ModalController) {
-		this.canvas = this.canvasEl.nativeElement;
-		this.ctx = this.canvas.getContext('2d');
-		this.canvas.height = this.canvasHeight;
-		this.canvas.width = this.canvasWidth;
-	}
-
-	public showImage() {
-		let reader = new FileReader();
-		let el = this.ionInputElRef.nativeElement.shadowRoot.querySelector('input') as HTMLInputElement;
-		if (el) {
-			this.file = el.files[0];
-			if (this.file && this.file.size != 0) {
-				//this.vin.photo = file;
-				//this.selectedImg = file.name;
-				var img: HTMLImageElement = new Image();
-				img.onload = () => {
-					// draw image
-					this.ctx.drawImage(img, 0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
-				};
-				// this is to setup loading the image
-				reader.onloadend = () => {
-					img.src = reader.result as string;
-				};
-				// this is to read the file
-				reader.readAsDataURL(this.file);
-			}
-		}
-	}
-
-	dismiss() {
-		this.modalCtrl.dismiss({ selectedfile: this.file });
 	}
 }

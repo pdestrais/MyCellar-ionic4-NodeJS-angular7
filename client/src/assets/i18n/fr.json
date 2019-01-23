@@ -1,13 +1,13 @@
 {
   "title": "MyCellar",
   "page": {
-    "config": "configuration",
-    "wine": "vin",
-    "appellation": "appellation",
-    "region": "region",
-    "type": "type",
-    "report": "rapport",
-    "stats": "statistiques",
+    "config": "Configuration",
+    "wine": "Vin",
+    "appellation": "Appellation",
+    "region": "Region",
+    "type": "Type",
+    "report": "Rapport",
+    "stats": "Statistiques",
     "search": "Recherche",
     "about": "A propos"
   },
