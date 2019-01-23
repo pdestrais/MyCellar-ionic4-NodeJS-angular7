@@ -1,5 +1,5 @@
 # Notepad ionic 4 - NodeJS - Electron application
-This notepad application is written in javascript using angular6/ionic4.
+This Cellar application is written in javascript using angular7/ionic4.
 It uses a pouchDB to store notes to the local storage and can synchronize with a cloud Cloudant database to share notes between devices.
 
 This application can be run either on a mobile (using PWA), in a browser or as a desktop application (using electron).
@@ -51,4 +51,5 @@ Go to the root directory, then login to could foundry (if not yet done) and push
 **Remark**
 The cloudant remote DB URL used for development is the following :
 
-https://0f3af673-f18c-4bab-968f-7757df974f8d-bluemix:adbacaa3f35ab290ac2209110848aa4994a8d1680927ac2bb6d3fbe2251c5d6f@0f3af673-f18c-4bab-968f-7757df974f8d-bluemix.cloudant.com/notes
+http://admin:admin@127.0.0.1:5984/cave_phd_prod
+

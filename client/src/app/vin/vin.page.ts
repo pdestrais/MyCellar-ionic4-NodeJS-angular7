@@ -1,7 +1,18 @@
 import { Subject } from 'rxjs';
 import { TranslateService } from '@ngx-translate/core';
-import { Component, OnInit, OnDestroy, Input } from '@angular/core';
+import {
+	Component,
+	OnInit,
+	OnDestroy,
+	AfterViewInit,
+	Input,
+	ElementRef,
+	ViewChild,
+	NgZone,
+	EventEmitter
+} from '@angular/core';
 import { NavController, NavParams, AlertController, ModalController } from '@ionic/angular';
+import { OverlayEventDetail } from '@ionic/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { PouchdbService } from '../services/pouchdb.service';
 import { VinModel, AppellationModel, OrigineModel, TypeModel } from '../models/cellar.model';
@@ -12,6 +23,7 @@ import { ToastController } from '@ionic/angular';
 import { ActivatedRoute } from '@angular/router';
 
 import * as Debugger from 'debug';
+import { DomSanitizer } from '@angular/platform-browser';
 const debug = Debugger('app:vin');
 
 @Component({
@@ -19,7 +31,7 @@ const debug = Debugger('app:vin');
 	templateUrl: './vin.page.html',
 	styleUrls: [ './vin.page.scss' ]
 })
-export class VinPage implements OnInit, OnDestroy {
+export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 	public nbreAvantUpdate: number = 0;
 	public newWine: boolean = true;
 	public vin: VinModel;
@@ -34,6 +46,20 @@ export class VinPage implements OnInit, OnDestroy {
 	public submitted: boolean;
 	private obs: Subject<string> = new Subject();
 	public priceRegExp: RegExp = new RegExp('^[0-9]+(,[0-9]{1,2})?$');
+	private ctx: any;
+	private canvas: any;
+	private canvasHeight: number = 200;
+	private canvasWidth: number = 150;
+	private url: string = '';
+	private selectedImg: string = '';
+	/**
+  * 'plug into' DOM canvas element using @ViewChild
+  */
+	@ViewChild('canvas') canvasEl: ElementRef;
+	@ViewChild('ionInputElRef', { read: ElementRef })
+	ionInputElRef: ElementRef;
+	@ViewChild('photoImage') photoImage: ElementRef<HTMLImageElement>;
+	@ViewChild('uploadphoto') inputUploader: ElementRef<HTMLInputElement>;
 
 	constructor(
 		private route: ActivatedRoute,
@@ -44,7 +70,8 @@ export class VinPage implements OnInit, OnDestroy {
 		private alertController: AlertController,
 		private modalCtrl: ModalController,
 		private http: HttpClient,
-		private toastCtrl: ToastController
+		private toastCtrl: ToastController,
+		private zone: NgZone
 	) {
 		this.vin = new VinModel(
 			'',
@@ -65,7 +92,8 @@ export class VinPage implements OnInit, OnDestroy {
 			'',
 			'',
 			0,
-			[]
+			[],
+			new File([], 'no file')
 		);
 		this.pouch
 			.getDocsOfType('vin')
@@ -109,13 +137,34 @@ export class VinPage implements OnInit, OnDestroy {
 
 	public ngOnInit() {
 		debug('[Vin.ngOnInit]called');
+		/* 		this.inputUploader.nativeElement.onchange((event: any) => {
+			this.showImage();
+			return '';
+		});
+ */
+		this.canvas = this.canvasEl.nativeElement;
+		this.ctx = this.canvas.getContext('2d');
+		this.canvas.height = this.canvasHeight;
+		this.canvas.width = this.canvasWidth;
 		let paramId = this.route.snapshot.params['id'];
 		// event emitted when appellations, origines & types are loaded
 		this.obs.subscribe((message) => {
 			if (paramId) {
 				this.pouch.getDoc(paramId).then((vin) => {
-					debug('vin ' + JSON.stringify(vin));
 					Object.assign(this.vin, vin);
+					if (this.vin['_attachments']) {
+						this.selectedImg = 'current Photo';
+						this.pouch.db
+							.getAttachment(this.vin._id, 'photoFile')
+							.then((blob) => this.showImageOnLoadWine(blob))
+							.catch(function(err) {
+								debug('[ngOnInit load attachment]Error : ' + err);
+							});
+					} else {
+						this.canvas = this.canvasEl.nativeElement;
+						this.canvas.height = 0;
+						this.canvas.width = 0;
+					}
 					this.nbreAvantUpdate = this.vin.nbreBouteillesReste;
 					this.newWine = false;
 					debug('[Vin.ngOnInit]Vin loaded : ' + JSON.stringify(this.vin));
@@ -151,7 +200,8 @@ export class VinPage implements OnInit, OnDestroy {
 					'',
 					'',
 					0,
-					[]
+					[],
+					new File([], 'no file')
 				);
 			}
 		});
@@ -180,6 +230,46 @@ export class VinPage implements OnInit, OnDestroy {
 		});
 	}
 
+	public ngAfterViewInit() {
+		debug('[entering ngAfterViewInit]');
+	}
+
+	public showImage() {
+		this.canvas.height = this.canvasHeight;
+		this.canvas.width = this.canvasWidth;
+		this.ctx = this.canvas.getContext('2d');
+		let reader = new FileReader();
+		//let el = this.ionInputElRef.nativeElement.shadowRoot.querySelector('input') as HTMLInputElement;
+		let el = this.inputUploader.nativeElement;
+		if (el) {
+			let file = el.files[0];
+			if (file && file.size != 0) {
+				this.vin.photo = file;
+				this.selectedImg = file.name;
+				var img: HTMLImageElement = new Image();
+				img.onload = () => {
+					// draw image
+					this.ctx.drawImage(img, 0, 0, this.canvasWidth, this.canvasHeight);
+				};
+				// this is to setup loading the image
+				reader.onloadend = () => {
+					img.src = reader.result as string;
+				};
+				// this is to read the file
+				reader.readAsDataURL(file);
+			}
+		}
+	}
+
+	public showImageOnLoadWine(blob) {
+		var url = URL.createObjectURL(blob);
+		let img = new Image();
+		img.src = url;
+		img.onload = (event: Event) => {
+			this.ctx.drawImage(img, 0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+		};
+	}
+
 	public ngOnDestroy() {
 		debug('[Vin.ngOnDestroy]called');
 		this.obs.unsubscribe();
@@ -193,7 +283,7 @@ export class VinPage implements OnInit, OnDestroy {
 		debug('[Vin.ionViewDidLoad]called');
 	}
 
-	public saveVin() {
+	public async saveVin() {
 		debug('[Vin.saveVin]entering');
 		this.submitted = true;
 		if (this.vinForm.valid) {
@@ -224,6 +314,26 @@ export class VinPage implements OnInit, OnDestroy {
 					difference: 0
 				});
 				this.vin.remarque = '';
+			}
+			if (this.vin.photo && this.vin.photo.size != 0) {
+				let fileName = this.vin.photo['name'];
+				if (this.vin.photo.type == 'image/jpeg') {
+					let blob = await this.canvasToBlob(this.canvas, 0.8);
+					this.vin['_attachments'] = {
+						photoFile: {
+							content_type: 'image/jpeg',
+							data: blob
+						}
+					};
+				} else {
+					this.vin['_attachments'] = {
+						photoFile: {
+							content_type: this.vin.photo.type,
+							data: this.vin.photo
+						}
+					};
+				}
+				delete this.vin.photo;
 			}
 			this.pouch.saveDoc(this.vin, 'vin').then((response) => {
 				if (response.ok) {
@@ -276,6 +386,15 @@ export class VinPage implements OnInit, OnDestroy {
 		this.navCtrl.goBack();
 	}
 
+	public selectImage() {
+		this.modalCtrl.create({ component: AddPhotoModalPage }).then(async (modal) => {
+			modal.present();
+			modal.onDidDismiss().then((result: OverlayEventDetail) => {
+				this.vin.photo = result.data.selectedFile;
+				this.selectedImg = result.data.selectedFile.name;
+			});
+		});
+	}
 	public showHistory() {
 		this.modalCtrl.create({ component: ModalPage, componentProps: { vin: this.vin } }).then((modal) => {
 			modal.present();
@@ -403,6 +522,18 @@ export class VinPage implements OnInit, OnDestroy {
 			return { double: true };
 		} else return null;
 	}
+
+	private canvasToBlob(canvas, quality: number) {
+		return new Promise(function(resolve) {
+			canvas.toBlob(
+				function(blob) {
+					return resolve(blob);
+				},
+				'image/jpeg',
+				quality
+			);
+		});
+	}
 }
 
 @Component({
@@ -446,5 +577,82 @@ export class ModalPage {
 	constructor(private modalCtrl: ModalController) {}
 	dismiss() {
 		this.modalCtrl.dismiss();
+	}
+}
+
+@Component({
+	template: `
+  <ion-header>
+    <ion-toolbar>
+      <ion-buttons slot="start">
+        <ion-menu-button></ion-menu-button>
+      </ion-buttons>
+      <ion-title>
+        {{'wine.history' | translate }}
+      </ion-title>
+    </ion-toolbar>
+  </ion-header>
+  <ion-content>
+	<ion-item id="vin-input15">
+		<ion-label>
+			Photo
+		</ion-label>
+		<ion-input #ionInputElRef [(ngModel)]="vin.photo" type="file" accept="image/*" placeholder="" [ngModelOptions]="{standalone: true}"
+			(ionChange)="showImage($event)"></ion-input>
+	</ion-item>
+	<div class="ion-canvas">
+		<canvas #canvas height="400" width="300"></canvas>
+	</div>
+	<ion-button style="margintop: 20px" color="primary" expand="full" (click)="dismiss()">
+	{{'general.select' | translate }}
+</ion-button>
+
+</ion-content>
+  `
+})
+export class AddPhotoModalPage {
+	private ctx: any;
+	private canvas: any;
+	private canvasHeight: number = 200;
+	private canvasWidth: number = 150;
+	private file;
+
+	@ViewChild('canvas') canvasEl: ElementRef;
+	/** Workaround to access native HTML input element inside ion-input to access files information */
+	@ViewChild('ionInputElRef', { read: ElementRef })
+	ionInputElRef: ElementRef;
+
+	constructor(private modalCtrl: ModalController) {
+		this.canvas = this.canvasEl.nativeElement;
+		this.ctx = this.canvas.getContext('2d');
+		this.canvas.height = this.canvasHeight;
+		this.canvas.width = this.canvasWidth;
+	}
+
+	public showImage() {
+		let reader = new FileReader();
+		let el = this.ionInputElRef.nativeElement.shadowRoot.querySelector('input') as HTMLInputElement;
+		if (el) {
+			this.file = el.files[0];
+			if (this.file && this.file.size != 0) {
+				//this.vin.photo = file;
+				//this.selectedImg = file.name;
+				var img: HTMLImageElement = new Image();
+				img.onload = () => {
+					// draw image
+					this.ctx.drawImage(img, 0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+				};
+				// this is to setup loading the image
+				reader.onloadend = () => {
+					img.src = reader.result as string;
+				};
+				// this is to read the file
+				reader.readAsDataURL(this.file);
+			}
+		}
+	}
+
+	dismiss() {
+		this.modalCtrl.dismiss({ selectedfile: this.file });
 	}
 }

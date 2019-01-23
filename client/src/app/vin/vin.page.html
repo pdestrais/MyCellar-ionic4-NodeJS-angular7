@@ -160,6 +160,50 @@
         fetch
       </ion-button>
     </ion-item>
+    <ion-grid>
+      <ion-row>
+        <ion-col>
+          <!--           <label class="fileContainer">
+            Click !
+            <input type="file" />
+          </label>
+ -->
+          <ion-label>
+            Photo
+          </ion-label>
+          <div *ngIf="selectedImg.length!=0">
+            <label for="uploadphoto">{{'changeImage' | translate }}</label>
+          </div>
+          <input #uploadphoto type="file" name="photo" id="uploadphoto" (change)="showImage($event)" />
+          <!--           <ion-label>
+            Photo
+          </ion-label>
+ -->
+          <!-- <ion-button class="addPhoto" fill="outline" expand="block" (click)="selectImage()">
+          </ion-button>
+          <ion-input #ionInputElRef [(ngModel)]="vin.photo" type="file" accept="image/*" placeholder=""
+            [ngModelOptions]="{standalone: true}" (ionChange)="showImage($event)"></ion-input>
+ -->
+        </ion-col>
+        <ion-col>
+          <div *ngIf="selectedImg.length==0">
+            <label for="uploadphoto" class="nophoto">{{'addImage' | translate }}</label>
+          </div>
+          <div class="ion-canvas">
+            <canvas #canvas height="0" width="0"></canvas>
+          </div>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+
+    <!--     <ion-item id="vin-input15">
+      <ion-label>
+        Photo
+      </ion-label>
+      <ion-input #ionInputElRef [(ngModel)]="vin.photo" type="file" accept="image/*" placeholder="" [ngModelOptions]="{standalone: true}"
+        (ionChange)="showImage($event)"></ion-input>
+    </ion-item>
+ -->
     <!--     <ion-item *ngIf="vin.history && vin.history.length>0" (click)="showHistory()">
  -->
     <ion-button fill="outline" expand="full" (click)="showHistory()">

@@ -44,7 +44,12 @@ export class AppComponent {
 		this.platform.ready().then(() => {
 			this.statusBar.styleDefault();
 			this.splashScreen.hide();
-			this.translate.setDefaultLang('fr');
+			let lang = window.localStorage.getItem('myCellar.language');
+			if (lang) this.translate.setDefaultLang(lang);
+			else {
+				this.translate.setDefaultLang('en');
+				window.localStorage.setItem('myCellar.language', 'en');
+			}
 			window.setTimeout(() => {
 				this.initializeOptions();
 			}, 500);

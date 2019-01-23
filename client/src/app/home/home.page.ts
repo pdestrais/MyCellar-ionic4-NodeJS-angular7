@@ -82,7 +82,7 @@ export class HomePage implements OnInit {
 				debug('[ngOnInit - observed event message]' + JSON.stringify(event) + ' - loading wines');
 			});
 		// and sometime, there is no synchronization defined
-		let result = window.localStorage.getItem('remoteDBURL');
+		let result = window.localStorage.getItem('myCellar.remoteDBURL');
 		if (!result || !result.startsWith('http')) {
 			debug('[ngOnInit] no remote db initialized, using local database');
 			// check if this choice hasn't been done already in the past (in a previous session on this browser). If not, ask to choose.

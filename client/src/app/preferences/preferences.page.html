@@ -1,11 +1,11 @@
 <ion-header>
   <ion-toolbar color="primary">
-    <ion-title>
-      preferences
-    </ion-title>
     <ion-buttons slot="start">
-      <ion-back-button icon="arrow-round-back"></ion-back-button>
+      <ion-menu-button></ion-menu-button>
     </ion-buttons>
+    <ion-title>
+      {{'page.config' | translate }}
+    </ion-title>
   </ion-toolbar>
 </ion-header>
 
@@ -13,23 +13,56 @@
   <ion-grid>
     <ion-row justify-content-center>
       <ion-col align-self-center size-md="6" size-lg="5" size-xs="12">
-        <div padding>
+        <!--           <ion-card>
+            <ion-card-content>
+              <p>{{'config.dbSettingExplain1' | translate}}</p>
+              <p>{{'config.dbSettingExplain2' | translate}}</p>
+              <ol>
+                <li>{{'config.dbSettingExplain3' | translate}}</li>
+                <li>{{'config.dbSettingExplain4' | translate}}</li>
+              </ol>
+            </ion-card-content>
+          </ion-card>
+ -->
+        <ion-item-group>
+          <ion-item-divider color="secondary">
+            <ion-label>{{'config.language' | translate }}</ion-label>
+          </ion-item-divider>
+          <ion-item id="configuration-select5">
+            <ion-select [(ngModel)]="language" (ionChange)="languageChange($event)" name="langue" interface="popover">
+              <ion-select-option *ngFor="let lang of supportedLanguages | keyvalue" [value]="lang.key">
+                {{lang.value | translate }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+
+          <ion-item-divider color="secondary">
+            <ion-label>Remote Cloudant Database URL</ion-label>
+            <ion-button size="small" shape="round" fill="outline" slot="end" (click)="showSupportText()">help<ion-icon
+                size='small' slot="end" name="help"></ion-icon>
+            </ion-button>
+          </ion-item-divider>
           <ion-item>
-            <ion-label position="stacked">Remote Cloudant Database URL</ion-label>
+            <!-- <ion-label position="stacked">Remote Cloudant Database URL</ion-label> -->
             <ion-input type="text" [(ngModel)]="remoteDBURL" (ngModelChange)="checkURLValidity()" placeholder="https://userid:password@url/db"
               clear-input="true"></ion-input>
           </ion-item>
-        </div>
-        <ion-button expand="full" [disabled]="!valid" (click)="syncWithRemoteDB()">
-          <ion-icon slot="start" class="bigger" src="assets/icon/sync.svg"></ion-icon>
-          Sync local <br> with remote DB
-        </ion-button>
-        <ion-button expand="full" [disabled]="!valid" (click)="replAndSyncWithRemoteDB()">
-          <ion-icon slot="start" class="bigger" src="assets/icon/replAndSync.svg"></ion-icon>
-          Overwrite local <br> with remote DB
-        </ion-button>
+          <ion-button expand="full" [disabled]="!valid" (click)="syncWithRemoteDB()">
+            <ion-icon slot="start" class="bigger" src="assets/icon/sync.svg"></ion-icon>
+            Sync local <br> with remote DB
+          </ion-button>
+          <ion-button expand="full" [disabled]="!valid" (click)="replAndSyncWithRemoteDB()">
+            <ion-icon slot="start" class="bigger" src="assets/icon/replAndSync.svg"></ion-icon>
+            Overwrite local <br> with remote DB
+          </ion-button>
+        </ion-item-group>
       </ion-col>
     </ion-row>
-    <ion-row *ngIf="loading">Loading...</ion-row>
+    <ion-row *ngIf="loading">
+      <ion-col>
+        <h5 text-center margin-top>Loading</h5>
+        <div text-center><IMG SRC="assets/icon/Blocks-1.2s-100px.gif"></div>
+      </ion-col>
+    </ion-row>
   </ion-grid>
 </ion-content>
