@@ -30,6 +30,7 @@
     "@ionic/angular": "4.0.0-rc.1",
     "@ngx-translate/core": "^11.0.1",
     "@ngx-translate/http-loader": "^4.0.0",
+    "blueimp-load-image": "^2.20.1",
     "core-js": "^2.5.4",
     "d3": "^5.7.0",
     "debug": "^4.1.1",

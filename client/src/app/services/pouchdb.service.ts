@@ -38,7 +38,7 @@ export class PouchdbService {
 	};
 
 	constructor() {
-		this.db = new PouchDB('notes' /* ,{revs_limit: 1, auto_compaction: true} */);
+		this.db = new PouchDB('cellar' /* ,{revs_limit: 1, auto_compaction: true} */);
 		this.remote = window.localStorage.getItem('myCellar.remoteDBURL');
 		debug('[DataService constructor]calling syncLocalWithRemote');
 		this.syncLocalwithRemote();

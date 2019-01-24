@@ -10,6 +10,8 @@ import moment from 'moment/src/moment';
 import { map } from 'rxjs/operators';
 import { ToastController } from '@ionic/angular';
 import { ActivatedRoute } from '@angular/router';
+//import * as LoadImage from 'blueimp-load-image';
+import loadImage from 'blueimp-load-image/js/index';
 
 import * as Debugger from 'debug';
 import { DomSanitizer } from '@angular/platform-browser';
@@ -41,6 +43,11 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 	private canvasWidth: number = 150;
 	private url: string = '';
 	public selectedImg: string = '';
+	private mq420: MediaQueryList = window.matchMedia('(max-width: 420px)');
+	private mq500: MediaQueryList = window.matchMedia('(min-width:421px) and (max-width: 500px )');
+	private mq800: MediaQueryList = window.matchMedia('(min-width:501px) and (max-width: 800px )');
+	private mq2000: MediaQueryList = window.matchMedia('(min-width:801px)');
+
 	/**
   * 'plug into' DOM canvas element using @ViewChild
   */
@@ -131,11 +138,14 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 			return '';
 		});
  */
+		// Setting canvas for wine image display - no listeners are defined as the resolution is not expected to change during usage
 		this.canvas = this.canvasEl.nativeElement;
-		this.ctx = this.canvas.getContext('2d');
+		this.getCanvasDim();
 		this.canvas.height = this.canvasHeight;
 		this.canvas.width = this.canvasWidth;
+		this.ctx = this.canvas.getContext('2d');
 		let paramId = this.route.snapshot.params['id'];
+
 		// event emitted when appellations, origines & types are loaded
 		this.obs.subscribe((message) => {
 			if (paramId) {
@@ -224,6 +234,7 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 	}
 
 	public showImage() {
+		this.getCanvasDim();
 		this.canvas.height = this.canvasHeight;
 		this.canvas.width = this.canvasWidth;
 		this.ctx = this.canvas.getContext('2d');
@@ -233,9 +244,22 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 		if (el) {
 			let file = el.files[0];
 			if (file && file.size != 0) {
+				loadImage.parseMetaData(file, (data) => {
+					var orientation = 0;
+					if (typeof data.exif !== 'undefined') {
+						orientation = parseInt(data.exif.get('Orientation'));
+					}
+					loadImage(
+						file,
+						(img) => {
+							this.ctx.drawImage(img, 0, 0, this.canvasWidth, this.canvasHeight);
+						},
+						{ maxWidth: this.canvasWidth, maxHeight: this.canvasHeight, orientation: orientation } // Options
+					);
+				});
 				this.vin.photo = file;
 				this.selectedImg = file.name;
-				var img: HTMLImageElement = new Image();
+				/* 				var img: HTMLImageElement = new Image();
 				img.onload = () => {
 					// draw image
 					this.ctx.drawImage(img, 0, 0, this.canvasWidth, this.canvasHeight);
@@ -246,6 +270,7 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 				};
 				// this is to read the file
 				reader.readAsDataURL(file);
+ */
 			}
 		}
 	}
@@ -307,7 +332,7 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 			if (this.vin.photo && this.vin.photo.size != 0) {
 				let fileName = this.vin.photo['name'];
 				if (this.vin.photo.type == 'image/jpeg') {
-					let blob = await this.canvasToBlob(this.canvas, 0.8);
+					let blob = await this.canvasToBlob(this.canvas, 0.85);
 					this.vin['_attachments'] = {
 						photoFile: {
 							content_type: 'image/jpeg',
@@ -513,6 +538,29 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 				quality
 			);
 		});
+	}
+
+	private getCanvasDim() {
+		if (this.mq420.matches) {
+			this.canvasWidth = 150;
+			this.canvasHeight = 180;
+			return;
+		}
+		if (this.mq500.matches) {
+			this.canvasWidth = 210;
+			this.canvasHeight = 280;
+			return;
+		}
+		if (this.mq800.matches) {
+			this.canvasWidth = 300;
+			this.canvasHeight = 400;
+			return;
+		}
+		if (this.mq2000.matches) {
+			this.canvasWidth = 600;
+			this.canvasHeight = 800;
+			return;
+		}
 	}
 }
 

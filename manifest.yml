@@ -1,5 +1,5 @@
 ---
 applications:
- - name: mdnotepad
-   host:  pdestrais-mdnotepad
+ - name: myCellar
+   host:  pdestrais-mycellar
    memory: 128M

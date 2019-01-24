@@ -162,12 +162,7 @@
     </ion-item>
     <ion-grid>
       <ion-row>
-        <ion-col>
-          <!--           <label class="fileContainer">
-            Click !
-            <input type="file" />
-          </label>
- -->
+        <ion-col size=auto>
           <ion-label>
             Photo
           </ion-label>
@@ -175,15 +170,6 @@
             <label for="uploadphoto">{{'changeImage' | translate }}</label>
           </div>
           <input #uploadphoto type="file" name="photo" id="uploadphoto" (change)="showImage()" />
-          <!--           <ion-label>
-            Photo
-          </ion-label>
- -->
-          <!-- <ion-button class="addPhoto" fill="outline" expand="block" (click)="selectImage()">
-          </ion-button>
-          <ion-input #ionInputElRef [(ngModel)]="vin.photo" type="file" accept="image/*" placeholder=""
-            [ngModelOptions]="{standalone: true}" (ionChange)="showImage($event)"></ion-input>
- -->
         </ion-col>
         <ion-col>
           <div *ngIf="selectedImg.length==0">
@@ -195,24 +181,11 @@
         </ion-col>
       </ion-row>
     </ion-grid>
-
-    <!--     <ion-item id="vin-input15">
-      <ion-label>
-        Photo
-      </ion-label>
-      <ion-input #ionInputElRef [(ngModel)]="vin.photo" type="file" accept="image/*" placeholder="" [ngModelOptions]="{standalone: true}"
-        (ionChange)="showImage($event)"></ion-input>
-    </ion-item>
- -->
-    <!--     <ion-item *ngIf="vin.history && vin.history.length>0" (click)="showHistory()">
- -->
     <ion-button fill="outline" expand="full" (click)="showHistory()">
       <ion-icon slot=" end" name="arrow-dropright">
       </ion-icon>
       {{'wine.history' | translate }}
     </ion-button>
-    <!--     </ion-item>
- -->
   </form>
   <ion-button [disabled]="!vinForm.valid" id="vin-button1" color="primary" expand="full" (click)="saveVin()">
     {{'general.save' | translate }}
