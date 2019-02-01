@@ -47,6 +47,7 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 	private mq500: MediaQueryList = window.matchMedia('(min-width:421px) and (max-width: 500px )');
 	private mq800: MediaQueryList = window.matchMedia('(min-width:501px) and (max-width: 800px )');
 	private mq2000: MediaQueryList = window.matchMedia('(min-width:801px)');
+	public testObject = {};
 
 	/**
   * 'plug into' DOM canvas element using @ViewChild
@@ -94,7 +95,7 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 		this.pouch
 			.getDocsOfType('vin')
 			.then((vins) => (this.vinsMap = new Map(vins.map((v) => [ v.nom + v.annee, v ]))));
-		this.nameYearForm = this.formBuilder.group(
+		/* 		this.nameYearForm = this.formBuilder.group(
 			{
 				nom: [ '', Validators.required ],
 				annee: [
@@ -109,25 +110,40 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 			},
 			{ validator: this.noDouble.bind(this) }
 		);
-		this.vinForm = this.formBuilder.group({
-			nameYearForm: this.nameYearForm,
-			type: [ '', Validators.required ],
-			origine: [ '', Validators.required ],
-			appellation: [ '', Validators.required ],
-			nbreBouteillesAchat: [ 0, Validators.required ],
-			nbreBouteillesReste: [ 0, Validators.compose([ Validators.pattern('[0-9]*'), Validators.required ]) ],
-			prixAchat: [
-				0,
-				Validators.compose([
-					Validators.pattern('^[0-9]+((,[0-9]{1,2})|(.[0-9]{1,2}))?$'),
-					Validators.required
-				])
-			],
-			//        prixAchat: [0,Validators.required],
-			dateAchat: [ '', Validators.required ],
-			localisation: [ '', Validators.required ],
-			apogee: [ '', Validators.pattern('^[0-9]{4,4}-[0-9]{4,4}$') ]
-		});
+ */ this.vinForm = this.formBuilder.group(
+			{
+				nom: [ '', Validators.required ],
+				annee: [
+					'',
+					Validators.compose([
+						Validators.minLength(4),
+						Validators.maxLength(4),
+						Validators.pattern('[0-9]*'),
+						Validators.required
+					])
+				],
+				type: [ '', Validators.required ],
+				origine: [ '', Validators.required ],
+				appellation: [ '', Validators.required ],
+				nbreBouteillesAchat: [ 0, Validators.required ],
+				nbreBouteillesReste: [ 0, Validators.compose([ Validators.pattern('[0-9]*'), Validators.required ]) ],
+				prixAchat: [
+					0,
+					Validators.compose([
+						Validators.pattern('^[0-9]+((,[0-9]{1,2})|(.[0-9]{1,2}))?$'),
+						Validators.required
+					])
+				],
+				//        prixAchat: [0,Validators.required],
+				dateAchat: [ '', Validators.required ],
+				localisation: [ '', Validators.required ],
+				apogee: [ '', Validators.pattern('^[0-9]{4,4}-[0-9]{4,4}$') ],
+				contenance: [ '' ],
+				cepage: [ '' ],
+				GWSScore: [ '' ]
+			},
+			{ validator: this.noDouble.bind(this) }
+		);
 		this.submitted = false;
 	}
 
@@ -151,6 +167,23 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 			if (paramId) {
 				this.pouch.getDoc(paramId).then((vin) => {
 					Object.assign(this.vin, vin);
+					//this.vin.appellation = this.vin.appellation._id;
+					this.vinForm.setValue(
+						this.reject(vin, [
+							'_id',
+							'_rev',
+							'remarque',
+							'history',
+							'lastUpdated',
+							'dateCreated',
+							'cotes',
+							'_attachments'
+						])
+					);
+					this.vinForm.controls['appellation'].setValue(this.vin.appellation._id);
+					this.vinForm.controls['origine'].setValue(this.vin.origine._id);
+					this.vinForm.controls['type'].setValue(this.vin.type._id);
+					// Processing attachment and adjusting rendering canvas size to minimize real estate used by photo in case it doesn't exist.
 					if (this.vin['_attachments']) {
 						this.selectedImg = 'current Photo';
 						this.pouch.db
@@ -210,20 +243,22 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 			this.origines.sort((a, b) => {
 				return a.pays + a.region < b.pays + b.region ? -1 : 1;
 			});
-			//debug('[VinPage constructor]origines is :'+JSON.stringify(this.origines));
+			debug('[VinPage constructor]origines is :' + JSON.stringify(this.origines));
 			this.pouch.getDocsOfType('appellation').then((result) => {
 				this.appellations = result;
 				this.appellations.sort((a, b) => {
 					return a.courte + a.longue < b.courte + b.longue ? -1 : 1;
 				});
-				//debug('[VinPage constructor]appellations is :'+JSON.stringify(this.appellations));
+				debug('[VinPage constructor]appellations is :' + JSON.stringify(this.appellations));
 				this.pouch.getDocsOfType('type').then((result) => {
 					this.types = result;
 					this.types.sort((a, b) => {
 						return a.nom < b.nom ? -1 : 1;
 					});
-					//debug('[VinPage constructor]types is :'+JSON.stringify(this.types));
-					this.obs.next('typeLoaded');
+					debug('[VinPage constructor]types is :' + JSON.stringify(this.types));
+					window.setTimeout(() => {
+						this.obs.next('typeLoaded');
+					}, 200);
 				});
 			});
 		});
@@ -303,7 +338,13 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 		if (this.vinForm.valid) {
 			// validation succeeded
 			debug('[Vin.saveVin]vin valid');
+			let id = this.vin._id;
+			this.vin = this.vinForm.value;
+			this.vin._id = id;
 			this.vin.lastUpdated = new Date().toISOString();
+			this.vin.appellation = this.appellations.find((appellation) => appellation._id == this.vin.appellation);
+			this.vin.origine = this.origines.find((origine) => origine._id == this.vin.origine);
+			this.vin.type = this.types.find((type) => type._id == this.vin.type);
 			if (this.newWine) {
 				this.vin.history.push({
 					type: 'creation',
@@ -351,7 +392,7 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 			}
 			this.pouch.saveDoc(this.vin, 'vin').then((response) => {
 				if (response.ok) {
-					debug('[Vin.saveVin]vin ' + JSON.stringify(this.vin) + 'saved');
+					debug('[Vin.saveVin]vin ' + JSON.stringify(this.vin) + ' saved');
 					this.presentToast(this.translate.instant('general.dataSaved'), 'success', '/home');
 					//this.navCtrl.push(SearchPage)
 				} else {
@@ -449,21 +490,28 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 
 	public typeChange(val: any) {
 		debug('type change detected');
-		this.pouch.getDoc(val.detail.value).then((result) => (this.vin.type = new TypeModel(result._id, result.nom)));
+		if (typeof val.detail.value == 'string')
+			this.pouch
+				.getDoc(val.detail.value)
+				.then((result) => (this.vin.type = new TypeModel(result._id, result.nom)));
 	}
 
 	public origineChange(val: any) {
 		debug('origine change detected');
-		this.pouch
-			.getDoc(val.detail.value)
-			.then((result) => (this.vin.origine = new OrigineModel(result._id, result.pays, result.region)));
+		if (typeof val.detail.value == 'string')
+			this.pouch
+				.getDoc(val.detail.value)
+				.then((result) => (this.vin.origine = new OrigineModel(result._id, result.pays, result.region)));
 	}
 
 	public appellationChange(val: any) {
 		debug('appellation change detected');
-		this.pouch
-			.getDoc(val.detail.value)
-			.then((result) => (this.vin.appellation = new AppellationModel(result._id, result.courte, result.longue)));
+		if (typeof val.detail.value == 'string')
+			this.pouch
+				.getDoc(val.detail.value)
+				.then(
+					(result) => (this.vin.appellation = new AppellationModel(result._id, result.courte, result.longue))
+				);
 	}
 
 	public showDate(ISODateString) {
@@ -561,6 +609,13 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 			this.canvasHeight = 800;
 			return;
 		}
+	}
+
+	private reject(obj, keys) {
+		return Object.keys(obj)
+			.filter((k) => !keys.includes(k))
+			.map((k) => Object.assign({}, { [k]: obj[k] }))
+			.reduce((res, o) => Object.assign(res, o), {});
 	}
 }
 

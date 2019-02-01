@@ -70,3 +70,12 @@ label.nophoto {
   text-align: right;
   top: 0;
 }
+
+p.invalid {
+  font-size: 70%;
+  color: var(--ion-color-danger);
+}
+
+.select-md {
+  min-width: 70%;
+}

@@ -216,6 +216,7 @@ export class PouchdbService {
 	}
 
 	public getDoc(id: string) {
+		debug('[getDoc]id : ' + id);
 		return this.db
 			.get(id /* , { attachments: true } */)
 			.then((result) => {
