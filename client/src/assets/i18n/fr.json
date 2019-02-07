@@ -32,7 +32,7 @@
     "bottlesPurchase": "# achetées",
     "bottlesLeft": "# restantes",
     "comment": "commentaire",
-    "history": "historique",
+    "history": "voir historique et commentaires",
     "location": "localisation",
     "price": "prix",
     "contains": "contenant",
@@ -47,8 +47,10 @@
     "minmax": "doit avoir au moins 4 chiffres",
     "apogee": "apogee",
     "GWSScore": "Score GWS",
+    "fetch": "Obtenir",
     "double": "Un vin avec le même nom et la même année existe déjà",
-    "grape": "Cépage"
+    "grape": "Cépage",
+    "GWSScoreNotFound": "Pas de score GWS trouvé à l'url : {{url}}"
   },
   "appellation": {
     "appellation": "appellation",

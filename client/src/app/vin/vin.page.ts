@@ -1,20 +1,18 @@
-import { Subject } from 'rxjs';
+import { Subject, fromEvent } from 'rxjs';
 import { TranslateService } from '@ngx-translate/core';
-import { Component, OnInit, OnDestroy, AfterViewInit, Input, ElementRef, ViewChild, NgZone } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, Input, ElementRef, ViewChild } from '@angular/core';
 import { NavController, NavParams, AlertController, ModalController } from '@ionic/angular';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { PouchdbService } from '../services/pouchdb.service';
 import { VinModel, AppellationModel, OrigineModel, TypeModel } from '../models/cellar.model';
 import { HttpClient } from '@angular/common/http';
 import moment from 'moment/src/moment';
-import { map } from 'rxjs/operators';
+import { map, debounceTime } from 'rxjs/operators';
 import { ToastController } from '@ionic/angular';
 import { ActivatedRoute } from '@angular/router';
-//import * as LoadImage from 'blueimp-load-image';
 import loadImage from 'blueimp-load-image/js/index';
 
 import * as Debugger from 'debug';
-import { DomSanitizer } from '@angular/platform-browser';
 const debug = Debugger('app:vin');
 
 @Component({
@@ -39,15 +37,19 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 	public priceRegExp: RegExp = new RegExp('^[0-9]+(,[0-9]{1,2})?$');
 	private ctx: any;
 	private canvas: any;
-	private canvasHeight: number = 200;
-	private canvasWidth: number = 150;
-	private url: string = '';
 	public selectedImg: string = '';
+	/* 	private canvasHeight: number = 200;
+	private canvasWidth: number = 150;
 	private mq420: MediaQueryList = window.matchMedia('(max-width: 420px)');
 	private mq500: MediaQueryList = window.matchMedia('(min-width:421px) and (max-width: 500px )');
 	private mq800: MediaQueryList = window.matchMedia('(min-width:501px) and (max-width: 800px )');
-	private mq2000: MediaQueryList = window.matchMedia('(min-width:801px)');
-	public testObject = {};
+	private mq2000: MediaQueryList = window.matchMedia('(min-width:920px)');
+ */
+	public imgBlob: Blob;
+	private url: any;
+	private imgRatio: number = 4 / 3;
+	private imgMinWidth: number = 150;
+	private imgMaxWidth: number = 550;
 
 	/**
   * 'plug into' DOM canvas element using @ViewChild
@@ -55,7 +57,7 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 	@ViewChild('canvas') canvasEl: ElementRef;
 	@ViewChild('ionInputElRef', { read: ElementRef })
 	ionInputElRef: ElementRef;
-	@ViewChild('photoImage') photoImage: ElementRef<HTMLImageElement>;
+	@ViewChild('photoImage') photoImage: any;
 	@ViewChild('uploadphoto') inputUploader: ElementRef<HTMLInputElement>;
 
 	constructor(
@@ -67,8 +69,7 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 		private alertController: AlertController,
 		private modalCtrl: ModalController,
 		private http: HttpClient,
-		private toastCtrl: ToastController,
-		private zone: NgZone
+		private toastCtrl: ToastController
 	) {
 		this.vin = new VinModel(
 			'',
@@ -149,17 +150,37 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 
 	public ngOnInit() {
 		debug('[Vin.ngOnInit]called');
-		/* 		this.inputUploader.nativeElement.onchange((event: any) => {
-			this.showImage();
-			return '';
-		});
- */
-		// Setting canvas for wine image display - no listeners are defined as the resolution is not expected to change during usage
 		this.canvas = this.canvasEl.nativeElement;
-		this.getCanvasDim();
-		this.canvas.height = this.canvasHeight;
-		this.canvas.width = this.canvasWidth;
+		//this.getCanvasDim();
+		this.canvas.height = this.imgMinWidth * this.imgRatio;
+		this.canvas.width = this.imgMinWidth;
 		this.ctx = this.canvas.getContext('2d');
+		// observable on window:resize event to handle photo image size resize. Prefered to HostListener because you can debounce with observables
+		fromEvent(window, 'resize')
+			.pipe(
+				debounceTime(500),
+				map(() => {
+					return {
+						height: window.innerHeight,
+						width: window.innerWidth
+					};
+				})
+			)
+			.subscribe(() => {
+				this.canvas.width = Math.min(
+					/* this.photoImage.el.clientWidth - 50,*/ this.imgMaxWidth,
+					this.getCanvasXSize()
+				);
+				this.canvas.height = this.canvas.width * this.imgRatio;
+				if (this.url) {
+					let img = new Image();
+					img.src = this.url;
+					img.onload = (event: Event) => {
+						this.ctx.drawImage(img, 0, 0, this.canvas.width, this.canvas.height);
+					};
+				}
+			});
+
 		let paramId = this.route.snapshot.params['id'];
 
 		// event emitted when appellations, origines & types are loaded
@@ -167,9 +188,8 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 			if (paramId) {
 				this.pouch.getDoc(paramId).then((vin) => {
 					Object.assign(this.vin, vin);
-					//this.vin.appellation = this.vin.appellation._id;
 					this.vinForm.setValue(
-						this.reject(vin, [
+						this.reject(this.vin, [
 							'_id',
 							'_rev',
 							'remarque',
@@ -177,7 +197,8 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 							'lastUpdated',
 							'dateCreated',
 							'cotes',
-							'_attachments'
+							'_attachments',
+							'photo'
 						])
 					);
 					this.vinForm.controls['appellation'].setValue(this.vin.appellation._id);
@@ -185,10 +206,13 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 					this.vinForm.controls['type'].setValue(this.vin.type._id);
 					// Processing attachment and adjusting rendering canvas size to minimize real estate used by photo in case it doesn't exist.
 					if (this.vin['_attachments']) {
-						this.selectedImg = 'current Photo';
+						this.selectedImg = 'photoFile';
 						this.pouch.db
 							.getAttachment(this.vin._id, 'photoFile')
-							.then((blob) => this.showImageOnLoadWine(blob))
+							.then((blob) => {
+								this.imgBlob = blob;
+								this.showImageOnLoadWine(blob);
+							})
 							.catch(function(err) {
 								debug('[ngOnInit load attachment]Error : ' + err);
 							});
@@ -269,9 +293,12 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 	}
 
 	public showImage() {
-		this.getCanvasDim();
+		/* 		this.getCanvasDim();
 		this.canvas.height = this.canvasHeight;
 		this.canvas.width = this.canvasWidth;
+ */
+		this.canvas.width = Math.min(/* this.photoImage.el.clientWidth - 50,*/ this.imgMaxWidth, this.getCanvasXSize());
+		this.canvas.height = this.canvas.width * this.imgRatio;
 		this.ctx = this.canvas.getContext('2d');
 		let reader = new FileReader();
 		//let el = this.ionInputElRef.nativeElement.shadowRoot.querySelector('input') as HTMLInputElement;
@@ -283,39 +310,47 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 					var orientation = 0;
 					if (typeof data.exif !== 'undefined') {
 						orientation = parseInt(data.exif.get('Orientation'));
+						let allTags = data.exif.getAll();
+						this.imgRatio = allTags['PixelYDimension'] / allTags['PixelXDimension'];
 					}
 					loadImage(
 						file,
 						(img) => {
-							this.ctx.drawImage(img, 0, 0, this.canvasWidth, this.canvasHeight);
-						},
-						{ maxWidth: this.canvasWidth, maxHeight: this.canvasHeight, orientation: orientation } // Options
+							this.ctx.drawImage(img, 0, 0, this.canvas.width, this.canvas.height);
+						}, // Options
+						/* { maxWidth: this.canvasWidth, maxHeight: this.canvasHeight, orientation: orientation } */ {
+							minWidth: this.imgMinWidth,
+							minHeight: this.imgMinWidth * this.imgRatio,
+							maxWidth: this.imgMaxWidth,
+							maxHeight: this.imgMaxWidth * this.imgRatio,
+							orientation: orientation
+						} // Options
 					);
 				});
 				this.vin.photo = file;
 				this.selectedImg = file.name;
-				/* 				var img: HTMLImageElement = new Image();
-				img.onload = () => {
-					// draw image
-					this.ctx.drawImage(img, 0, 0, this.canvasWidth, this.canvasHeight);
-				};
-				// this is to setup loading the image
-				reader.onloadend = () => {
-					img.src = reader.result as string;
-				};
-				// this is to read the file
-				reader.readAsDataURL(file);
- */
 			}
 		}
 	}
 
 	public showImageOnLoadWine(blob) {
-		var url = URL.createObjectURL(blob);
+		debug('[showImageOnLoadWine]image size is : ' + blob.size);
+		/* 		this.getCanvasDim();
+ */
+		loadImage.parseMetaData(blob, (data) => {
+			if (typeof data.exif !== 'undefined') {
+				let allTags = data.exif.getAll();
+				this.imgRatio = allTags['PixelYDimension'] / allTags['PixelXDimension'];
+			}
+		});
+		this.canvas.width = Math.min(/* this.photoImage.el.clientWidth - 50,*/ this.imgMaxWidth, this.getCanvasXSize());
+		this.canvas.height = this.canvas.width * this.imgRatio;
+		if (!this.url) this.url = URL.createObjectURL(blob);
 		let img = new Image();
-		img.src = url;
+		img.src = this.url;
 		img.onload = (event: Event) => {
-			this.ctx.drawImage(img, 0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+			//			this.ctx.drawImage(img, 0, 0, this.canvasWidth, this.canvasHeight);
+			this.ctx.drawImage(img, 0, 0, this.canvas.width, this.canvas.height);
 		};
 	}
 
@@ -339,7 +374,8 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 			// validation succeeded
 			debug('[Vin.saveVin]vin valid');
 			let id = this.vin._id;
-			this.vin = this.vinForm.value;
+			Object.assign(this.vin, this.vinForm.value);
+			//this.vin = this.vinForm.value;
 			this.vin._id = id;
 			this.vin.lastUpdated = new Date().toISOString();
 			this.vin.appellation = this.appellations.find((appellation) => appellation._id == this.vin.appellation);
@@ -373,7 +409,9 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 			if (this.vin.photo && this.vin.photo.size != 0) {
 				let fileName = this.vin.photo['name'];
 				if (this.vin.photo.type == 'image/jpeg') {
-					let blob = await this.canvasToBlob(this.canvas, 0.85);
+					let blob: any = new Blob();
+					blob = await this.canvasToBlob(this.canvas, 0.94);
+					debug('[saveVin]saved image file size : ' + blob.size);
 					this.vin['_attachments'] = {
 						photoFile: {
 							content_type: 'image/jpeg',
@@ -546,6 +584,19 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 			},
 			(error) => {
 				debug('http get error : ' + JSON.stringify(error.status));
+				this.presentToast(
+					this.translate.instant('wine.GWSScoreNotFound', {
+						url:
+							'https://www.globalwinescore.com/wine-score/' +
+							this.cleanForUrl(this.vin.nom) +
+							'-' +
+							this.cleanForUrl(this.vin.origine.region) +
+							'/' +
+							this.vin.annee
+					}),
+					'error',
+					null
+				);
 			}
 		);
 	}
@@ -576,7 +627,7 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 		} else return null;
 	}
 
-	private canvasToBlob(canvas, quality: number) {
+	private async canvasToBlob(canvas, quality: number) {
 		return new Promise(function(resolve) {
 			canvas.toBlob(
 				function(blob) {
@@ -588,7 +639,8 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 		});
 	}
 
-	private getCanvasDim() {
+	// Not used anymore - image canvas resizing is dynamic
+	/* 	private getCanvasDim() {
 		if (this.mq420.matches) {
 			this.canvasWidth = 150;
 			this.canvasHeight = 180;
@@ -605,10 +657,14 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 			return;
 		}
 		if (this.mq2000.matches) {
-			this.canvasWidth = 600;
-			this.canvasHeight = 800;
+			this.canvasWidth = 510;
+			this.canvasHeight = 680;
 			return;
 		}
+	}
+ */
+	private getCanvasXSize() {
+		return (window.outerWidth - 100 - Math.floor(window.outerWidth / 990) * 270) * 9 / 12;
 	}
 
 	private reject(obj, keys) {

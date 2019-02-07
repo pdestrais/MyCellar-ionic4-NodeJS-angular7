@@ -32,7 +32,7 @@
     "bottlesPurchase": "# bottles bought",
     "bottlesLeft": "# bottles left",
     "comment": "comment",
-    "history": "history",
+    "history": "show history and comments",
     "location": "location",
     "price": "price",
     "contains": "contains",
@@ -47,8 +47,10 @@
     "minmax": "must 4 digit length",
     "apogee": "apogee",
     "GWSScore": "GWS Score",
+    "fetch": "fecth",
     "double": "A wine with the same name and year already exists",
-    "grape": "Grape"
+    "grape": "Grape",
+    "GWSScoreNotFound": "No score GWS found at url : {{url}}"
   },
   "appellation": {
     "appellation": "appellation",

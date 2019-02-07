@@ -27,12 +27,7 @@ app.use(function (req, res, next) {
 });
 
 
-/* Endpoint to fetch data from Case manager.
- * Send a POST request to localhost:3000/api/crmsRIFSearch with body
- * {
- * 	"query": "SELECT SELECT * FROM cmis:folder WHERE cmis:objectTypeId='CRMS2_RIF' and CRMS2_RIFName=' Wim 1'"
- * }
- */
+/* Endpoint to fetch data from Global WIne Score web site. */
 app.get("/api/GWS/:appellation/:wine/:year", function (request, response) {
   var appellation = request.params.appellation;
   var wine = request.params.wine;
@@ -58,11 +53,22 @@ app.get("/api/GWS/:appellation/:wine/:year", function (request, response) {
       response.send(GWScore);
     })
     .catch(err => {
-      // Something went wrong. Save the error in state and re-render.
-      console.error("[NodeJS - /api/GWS]Something went wrong : " + JSON.stringify(err));
-      response.send({
-        error: JSON.stringify(err)
-      })
+      if (err.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.log("[NodeJS - /api/GWS]Something went wrong - status : " + err.response.status);
+        response.status(err.response.status).send(err.message);
+      } else if (err.request) {
+        // The request was made but no response was received
+        // `error.request` is an instance of XMLHttpRequest in the browser and an instance of
+        // http.ClientRequest in node.js
+        console.log("[NodeJS - /api/GWS]Something went wrong - no response from server : " + err.request);
+        response.status(500).send(err.message);
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.log("[NodeJS - /api/GWS]Something went wrong in the NodeJs proxy: " + err.message);
+        response.status(500).send(err.message);
+      }
     });
 });
 

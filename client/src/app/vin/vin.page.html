@@ -197,7 +197,7 @@
       <ion-col size=6>
         <ion-button class="padBefore" fill="outline" (click)="getGWSScore()">
           <ion-icon slot="end" name="arrow-dropright"></ion-icon>
-          fetch
+          {{'wine.fetch' | translate }}
         </ion-button>
       </ion-col>
     </ion-row>
@@ -209,9 +209,9 @@
         <div *ngIf="selectedImg.length!=0">
           <label for="uploadphoto">{{'changeImage' | translate }}</label>
         </div>
-        <input #uploadphoto type="file" name="photo" id="uploadphoto" (change)="showImage()" />
+        <input #uploadphoto type="file" id="uploadphoto" (change)="showImage()" />
       </ion-col>
-      <ion-col>
+      <ion-col #photoImage>
         <div *ngIf="selectedImg.length==0">
           <label for="uploadphoto" class="nophoto">{{'addImage' | translate }}</label>
         </div>
@@ -220,7 +220,7 @@
         </div>
       </ion-col>
     </ion-row>
-    <ion-row>
+    <!--     <ion-row>
       <ion-col>
         <ion-button fill="outline" expand="full" (click)="showHistory()">
           <ion-icon slot=" end" name="arrow-dropright">
@@ -229,9 +229,18 @@
         </ion-button>
       </ion-col>
     </ion-row>
-
+ -->
+    <ion-row *ngIf="vin.history && vin.history.length>0">
+      <ion-col>
+        <ion-button expand="full" fill="outline" (click)="showHistory()">
+          <ion-icon slot="end" name="arrow-dropright"></ion-icon>
+          {{'wine.history' | translate }}
+        </ion-button>
+      </ion-col>
+    </ion-row>
   </ion-grid>
   <!--   </form> -->
+
   <ion-button [disabled]="!vinForm.valid" id="vin-button1" color="primary" expand="full" (click)="saveVin()">
     {{'general.save' | translate }}
   </ion-button>
