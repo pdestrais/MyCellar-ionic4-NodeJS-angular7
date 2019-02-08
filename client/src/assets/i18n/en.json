@@ -20,7 +20,11 @@
     "dbSettingExplain3": "keep local content you currently have and synchronize with an existing remote database. Instructions : Supply the URL, including credentials and database name and hit 'Start Sync'.",
     "dbSettingExplain4": "copy content from an existing remote database and synchronize. This will overwrite any local content you currently have. Instructions : Supply the URL, including credentials and database name and hit 'Overwrite and Sync'",
     "startSync": "Start Sync",
-    "overwriteAndSync": "Overwrite and Sync"
+    "overwriteAndSync": "Overwrite and Sync",
+    "syncOKHeader": "Synchronization done",
+    "syncOKMessage": "Your local database in now synchronized with the remote cloudant database. All changes will now be replicated and available on all your devices.",
+    "syncKOHeader": "Synchronization failed",
+    "syncKOMessage": "The following error happened : {{errorMessage}}"
   },
   "wine": {
     "name": "name",
@@ -50,7 +54,9 @@
     "fetch": "fecth",
     "double": "A wine with the same name and year already exists",
     "grape": "Grape",
-    "GWSScoreNotFound": "No score GWS found at url : {{url}}"
+    "GWSScoreNotFound": "No score GWS found at url : {{url}}",
+    "GWSScoreFound": "GWS Score found",
+    "fetchGWSSCore": "Fetching GWS Score"
   },
   "appellation": {
     "appellation": "appellation",

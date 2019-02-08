@@ -209,7 +209,7 @@
         <div *ngIf="selectedImg.length!=0">
           <label for="uploadphoto">{{'changeImage' | translate }}</label>
         </div>
-        <input #uploadphoto type="file" id="uploadphoto" (change)="showImage()" />
+        <input #uploadphoto type="file" accept="image/*" id="uploadphoto" (change)="showImage()" />
       </ion-col>
       <ion-col #photoImage>
         <div *ngIf="selectedImg.length==0">

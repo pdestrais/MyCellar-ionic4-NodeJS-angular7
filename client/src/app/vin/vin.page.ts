@@ -1,7 +1,7 @@
 import { Subject, fromEvent } from 'rxjs';
 import { TranslateService } from '@ngx-translate/core';
 import { Component, OnInit, OnDestroy, AfterViewInit, Input, ElementRef, ViewChild } from '@angular/core';
-import { NavController, NavParams, AlertController, ModalController } from '@ionic/angular';
+import { NavController, NavParams, AlertController, ModalController, LoadingController } from '@ionic/angular';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { PouchdbService } from '../services/pouchdb.service';
 import { VinModel, AppellationModel, OrigineModel, TypeModel } from '../models/cellar.model';
@@ -50,6 +50,7 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 	private imgRatio: number = 4 / 3;
 	private imgMinWidth: number = 150;
 	private imgMaxWidth: number = 550;
+	private offScreenCanvas: HTMLCanvasElement = document.createElement('canvas');
 
 	/**
   * 'plug into' DOM canvas element using @ViewChild
@@ -69,7 +70,8 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 		private alertController: AlertController,
 		private modalCtrl: ModalController,
 		private http: HttpClient,
-		private toastCtrl: ToastController
+		private toastCtrl: ToastController,
+		private loadingCtrl: LoadingController
 	) {
 		this.vin = new VinModel(
 			'',
@@ -172,11 +174,19 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 					this.getCanvasXSize()
 				);
 				this.canvas.height = this.canvas.width * this.imgRatio;
+				debug('resizing canvas to (W)' + this.canvas.width + ' (H)' + this.canvas.height);
 				if (this.url) {
 					let img = new Image();
 					img.src = this.url;
 					img.onload = (event: Event) => {
-						this.ctx.drawImage(img, 0, 0, this.canvas.width, this.canvas.height);
+						this.ctx.drawImage(
+							img,
+							0,
+							/* (this.photoImage.el.clientWidth - this.canvas.width - 10) / 2, */
+							0,
+							this.canvas.width,
+							this.canvas.height
+						);
 					};
 				}
 			});
@@ -267,19 +277,19 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 			this.origines.sort((a, b) => {
 				return a.pays + a.region < b.pays + b.region ? -1 : 1;
 			});
-			debug('[VinPage constructor]origines is :' + JSON.stringify(this.origines));
+			//debug('[VinPage constructor]origines is :' + JSON.stringify(this.origines));
 			this.pouch.getDocsOfType('appellation').then((result) => {
 				this.appellations = result;
 				this.appellations.sort((a, b) => {
 					return a.courte + a.longue < b.courte + b.longue ? -1 : 1;
 				});
-				debug('[VinPage constructor]appellations is :' + JSON.stringify(this.appellations));
+				//debug('[VinPage constructor]appellations is :' + JSON.stringify(this.appellations));
 				this.pouch.getDocsOfType('type').then((result) => {
 					this.types = result;
 					this.types.sort((a, b) => {
 						return a.nom < b.nom ? -1 : 1;
 					});
-					debug('[VinPage constructor]types is :' + JSON.stringify(this.types));
+					//debug('[VinPage constructor]types is :' + JSON.stringify(this.types));
 					window.setTimeout(() => {
 						this.obs.next('typeLoaded');
 					}, 200);
@@ -292,11 +302,22 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 		debug('[entering ngAfterViewInit]');
 	}
 
+	public createOffscreenCanvas() {
+		let offScreenCanvas = document.createElement('canvas');
+		offScreenCanvas.width = 1360;
+		offScreenCanvas.height = 400;
+		var context = offScreenCanvas.getContext('2d');
+		context.fillStyle = 'orange'; //set fill color
+		context.fillRect(10, 10, 200, 200);
+		return offScreenCanvas; //return canvas element
+	}
+
 	public showImage() {
 		/* 		this.getCanvasDim();
 		this.canvas.height = this.canvasHeight;
 		this.canvas.width = this.canvasWidth;
  */
+
 		this.canvas.width = Math.min(/* this.photoImage.el.clientWidth - 50,*/ this.imgMaxWidth, this.getCanvasXSize());
 		this.canvas.height = this.canvas.width * this.imgRatio;
 		this.ctx = this.canvas.getContext('2d');
@@ -312,11 +333,25 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 						orientation = parseInt(data.exif.get('Orientation'));
 						let allTags = data.exif.getAll();
 						this.imgRatio = allTags['PixelYDimension'] / allTags['PixelXDimension'];
+						debug(
+							'[showImage]orientation : ' +
+								orientation +
+								' - x: ' +
+								allTags['PixelXDimension'] +
+								' - y: ' +
+								allTags['PixelYDimension']
+						);
 					}
 					loadImage(
 						file,
 						(img) => {
-							this.ctx.drawImage(img, 0, 0, this.canvas.width, this.canvas.height);
+							this.offScreenCanvas.width = img.width;
+							this.offScreenCanvas.height = img.height;
+							debug('[showImage]loadImage (x,y) : (' + img.width + ',' + img.height + ')');
+							this.offScreenCanvas.getContext('2d').drawImage(img, 0, 0);
+							//this.canvas.width = img.width;
+							//this.canvas.heigth = img.height;
+							this.ctx.drawImage(this.offScreenCanvas, 0, 0);
 						}, // Options
 						/* { maxWidth: this.canvasWidth, maxHeight: this.canvasHeight, orientation: orientation } */ {
 							minWidth: this.imgMinWidth,
@@ -350,7 +385,20 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 		img.src = this.url;
 		img.onload = (event: Event) => {
 			//			this.ctx.drawImage(img, 0, 0, this.canvasWidth, this.canvasHeight);
-			this.ctx.drawImage(img, 0, 0, this.canvas.width, this.canvas.height);
+			/* 			this.ctx.drawImage(
+				img,
+				(this.photoImage.el.clientWidth - this.canvas.width - 10) / 2,
+				0,
+				this.canvas.width,
+				this.canvas.height
+			);
+ */ this.ctx.drawImage(
+				img,
+				0,
+				0,
+				this.canvas.width,
+				this.canvas.height
+			);
 		};
 	}
 
@@ -410,7 +458,7 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 				let fileName = this.vin.photo['name'];
 				if (this.vin.photo.type == 'image/jpeg') {
 					let blob: any = new Blob();
-					blob = await this.canvasToBlob(this.canvas, 0.94);
+					blob = await this.canvasToBlob(this.offScreenCanvas, 0.94);
 					debug('[saveVin]saved image file size : ' + blob.size);
 					this.vin['_attachments'] = {
 						photoFile: {
@@ -564,8 +612,12 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 		debug('[Vin.toNumber]' + attribute + ' changed: ' + this.vin[attribute]);
 	}
 
-	public getGWSScore() {
+	public async getGWSScore() {
 		debug('[Vin.getGWSScore]called');
+		const loading = await this.loadingCtrl.create({
+			message: this.translate.instant('wine.fetchGWSSCore')
+		});
+		await loading.present();
 		//        if (platforms.indexOf("core")!=-1) {
 		// Create url
 		let prefix = window.location.origin + '/api/';
@@ -579,11 +631,14 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 			this.vin.annee;
 		debug('[Vin.getGWSScore]url :' + url);
 		this.http.get(url).subscribe(
-			(GWSScore: any) => {
-				this.vin.GWSScore = GWSScore.score;
+			(GWscore: any) => {
+				loading.dismiss();
+				this.vinForm.patchValue({ GWSScore: GWscore.score });
+				this.presentToast(this.translate.instant('wine.GWSScoreFound'), 'success', null);
 			},
 			(error) => {
 				debug('http get error : ' + JSON.stringify(error.status));
+				loading.dismiss();
 				this.presentToast(
 					this.translate.instant('wine.GWSScoreNotFound', {
 						url:
@@ -599,6 +654,13 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 				);
 			}
 		);
+	}
+
+	async presentLoading() {
+		const loading = await this.loadingCtrl.create({
+			message: 'getting GWS Score'
+		});
+		await loading.present();
 	}
 
 	private cleanForUrl(text: string) {
@@ -617,7 +679,7 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 	}
 
 	private noDouble(group: FormGroup) {
-		debug('nodouble called');
+		//debug('nodouble called');
 		if (!group.controls.nom || !group.controls.annee) return null;
 		if (!group.controls.nom.dirty || !group.controls.annee.dirty) return null;
 		let testKey = group.value.nom + group.value.annee;
@@ -664,7 +726,7 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 	}
  */
 	private getCanvasXSize() {
-		return (window.outerWidth - 100 - Math.floor(window.outerWidth / 990) * 270) * 9 / 12;
+		return (window.outerWidth - 100 - Math.floor(window.outerWidth / 990) * 270) * 8 / 12;
 	}
 
 	private reject(obj, keys) {

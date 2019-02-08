@@ -33,11 +33,10 @@ export class PreferencesPage implements OnInit {
 		private translate: TranslateService
 	) {}
 
-	async confirmSync() {
+	async confirmSync(header, message) {
 		const alert = await this.alertCtrl.create({
-			header: 'Synchronization done',
-			message:
-				'Your local database in now synchronized with the remote cloudant database. All changes will now be replicated and available on all your devices.',
+			header: header,
+			message: message,
 			buttons: [
 				{
 					text: 'Ok',
@@ -58,7 +57,18 @@ export class PreferencesPage implements OnInit {
 			if (event.eventType == 'dbReplicationCompleted' || event.eventType == 'dbSynchronized') {
 				debug('[ngOnInit] replication is finished');
 				this.loading = false;
-				this.confirmSync();
+				this.confirmSync(
+					this.translate.instant('config.syncOKHeader'),
+					this.translate.instant('config.syncOKMessage')
+				);
+			}
+			if (event.eventType == 'dbReplicationFailed' || event.eventType == 'dbSyncFailed') {
+				debug('[ngOnInit] replication failed');
+				this.loading = false;
+				this.confirmSync(
+					this.translate.instant('config.syncKOHeader'),
+					this.translate.instant('config.syncKOMessage', { errorMessage: JSON.stringify(event.error) })
+				);
 			}
 		});
 		this.zone.run(() => (this.language = window.localStorage.getItem('myCellar.language')));

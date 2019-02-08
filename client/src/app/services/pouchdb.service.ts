@@ -21,7 +21,8 @@ type eventTypes =
 
 type dbEventsType = {
 	doc?;
-	eventType: eventTypes; // can be either 'docInsert', 'docUpdate', 'docDelete', 'dbReplicationStarted','dbReplicationCompleted','dbReplicationFailed','dbSyncStarted','dbSynchronized','dbSyncFailed'
+	eventType: eventTypes; // can be either 'docInsert', 'docUpdate', 'docDelete', 'dbReplicationStarted','dbReplicationCompleted','dbReplicationFailed','dbSyncStarted','dbSynchronized','dbSyncFailed',
+	error?;
 };
 
 @Injectable({
@@ -29,7 +30,7 @@ type dbEventsType = {
 })
 export class PouchdbService {
 	db: any;
-	remote: string = 'http://127.0.0.1:5984/notes';
+	remote: string = 'http://127.0.0.1:5984/cellar';
 	//dbEvents$: Subject<any> = new Subject();
 	dbEvents$: Subject<dbEventsType> = new Subject();
 	syncOptions = {
@@ -55,7 +56,7 @@ export class PouchdbService {
 					debug('[syncLocalwithRemote]sync paused - replication completed - info :' + JSON.stringify(info));
 				})
 				.on('failed', (error) => {
-					this.dbEvents$.next({ eventType: 'dbSyncFailed' });
+					this.dbEvents$.next({ eventType: 'dbSyncFailed', error: error });
 					debug('[syncLocalwithRemote]replication failed with error : ' + error);
 				});
 			this.dbEvents$.next({ eventType: 'dbSyncStarted' });
@@ -67,7 +68,7 @@ export class PouchdbService {
 	replicateRemoteToLocal() {
 		this.db.destroy().then((response) => {
 			console.info('database destroyed');
-			this.db = new PouchDB('notes' /* ,{revs_limit: 1, auto_compaction: true} */);
+			this.db = new PouchDB('cellar' /* ,{revs_limit: 1, auto_compaction: true} */);
 			// replicate remote DB to local
 			this.dbEvents$.next({ eventType: 'dbReplicationStarted' });
 			debug('[replicateRemoteToLocal]replication started');
@@ -80,8 +81,8 @@ export class PouchdbService {
 					debug('[replicateRemoteToLocal]replication completed');
 					this.db.sync(this.remote, this.syncOptions);
 				})
-				.on('error', () => {
-					this.dbEvents$.next({ eventType: 'dbReplicationFailed' });
+				.on('error', (error) => {
+					this.dbEvents$.next({ eventType: 'dbReplicationFailed', error: error });
 					debug('[replicateRemoteToLocal]replication failed');
 				});
 		});

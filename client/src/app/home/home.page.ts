@@ -96,7 +96,7 @@ export class HomePage implements OnInit {
 			.then((data) => {
 				this.wines = data;
 				this.loading = false;
-				debug('[getAllNotes] all wines loaded into component ' + JSON.stringify(this.wines));
+				//debug('[getAllWines] all wines loaded into component ' + JSON.stringify(this.wines));
 			})
 			.catch((error) => {
 				console.error('[getAllWines]problem to load vins - error : ' + JSON.stringify(error));
