@@ -1,6 +1,7 @@
 export class VinModel {
 	constructor(
 		public _id: string,
+		public _rev: string,
 		public nom: string,
 		public annee: string,
 		public nbreBouteillesAchat: number,
@@ -19,7 +20,7 @@ export class VinModel {
 		public apogee: string,
 		public GWSScore: number,
 		public cotes: Array<CoteModel>,
-		public photo: File
+		public photo: { name; width; heigth; orientation; fileType }
 	) {
 		this.nom = nom;
 		this.annee = annee;
@@ -39,7 +40,7 @@ export class VinModel {
 		this.apogee = apogee;
 		this.GWSScore = GWSScore;
 		this.cotes = cotes;
-		this.photo = new File([], 'Photo file');
+		this.photo = photo;
 	}
 }
 

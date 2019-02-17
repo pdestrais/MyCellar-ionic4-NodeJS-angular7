@@ -276,6 +276,16 @@ export class PouchdbService {
 		);
 	}
 
+	public async getAttachment(id: string, attachmentName: string) {
+		let blobOrBuffer;
+		try {
+			blobOrBuffer = await this.db.getAttachment('doc', 'att.txt');
+		} catch (err) {
+			throw err;
+		}
+		return blobOrBuffer;
+	}
+
 	/**
      * Generates a GUID string.
      * @returns {String} The generated GUID.

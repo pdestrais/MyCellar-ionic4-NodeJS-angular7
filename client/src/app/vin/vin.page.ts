@@ -1,6 +1,15 @@
 import { Subject, fromEvent } from 'rxjs';
 import { TranslateService } from '@ngx-translate/core';
-import { Component, OnInit, OnDestroy, AfterViewInit, Input, ElementRef, ViewChild } from '@angular/core';
+import {
+	Component,
+	OnInit,
+	OnDestroy,
+	AfterViewInit,
+	Input,
+	ElementRef,
+	ViewChild,
+	ChangeDetectorRef
+} from '@angular/core';
 import { NavController, NavParams, AlertController, ModalController, LoadingController } from '@ionic/angular';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { PouchdbService } from '../services/pouchdb.service';
@@ -11,6 +20,8 @@ import { map, debounceTime } from 'rxjs/operators';
 import { ToastController } from '@ionic/angular';
 import { ActivatedRoute } from '@angular/router';
 import loadImage from 'blueimp-load-image/js/index';
+import pica from 'pica/dist/pica.js';
+import { ViewerComponent } from './viewer/viewer.component';
 
 import * as Debugger from 'debug';
 const debug = Debugger('app:vin');
@@ -37,7 +48,6 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 	public priceRegExp: RegExp = new RegExp('^[0-9]+(,[0-9]{1,2})?$');
 	private ctx: any;
 	private canvas: any;
-	public selectedImg: string = '';
 	/* 	private canvasHeight: number = 200;
 	private canvasWidth: number = 150;
 	private mq420: MediaQueryList = window.matchMedia('(max-width: 420px)');
@@ -45,19 +55,20 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 	private mq800: MediaQueryList = window.matchMedia('(min-width:501px) and (max-width: 800px )');
 	private mq2000: MediaQueryList = window.matchMedia('(min-width:920px)');
  */
-	public imgBlob: Blob;
 	private url: any;
 	private imgRatio: number = 4 / 3;
 	private imgMinWidth: number = 150;
 	private imgMaxWidth: number = 550;
 	private offScreenCanvas: HTMLCanvasElement = document.createElement('canvas');
+	private selectedPhoto: { contentType: string; data: File } = {
+		contentType: 'jpeg',
+		data: new File([], 'Photo file')
+	};
 
 	/**
   * 'plug into' DOM canvas element using @ViewChild
   */
-	@ViewChild('canvas') canvasEl: ElementRef;
-	@ViewChild('ionInputElRef', { read: ElementRef })
-	ionInputElRef: ElementRef;
+	@ViewChild('hiddenInput') hiddenInput: ElementRef;
 	@ViewChild('photoImage') photoImage: any;
 	@ViewChild('uploadphoto') inputUploader: ElementRef<HTMLInputElement>;
 
@@ -77,6 +88,7 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 			'',
 			'',
 			'',
+			'',
 			0,
 			0,
 			0,
@@ -93,7 +105,7 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 			'',
 			0,
 			[],
-			new File([], 'no file')
+			{ name: '', width: 0, heigth: 0, orientation: 1, fileType: '' }
 		);
 		this.pouch
 			.getDocsOfType('vin')
@@ -152,45 +164,31 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 
 	public ngOnInit() {
 		debug('[Vin.ngOnInit]called');
-		this.canvas = this.canvasEl.nativeElement;
+		//this.canvas = this.canvasEl.nativeElement;
+		this.canvas = document.createElement('canvas');
 		//this.getCanvasDim();
 		this.canvas.height = this.imgMinWidth * this.imgRatio;
 		this.canvas.width = this.imgMinWidth;
 		this.ctx = this.canvas.getContext('2d');
 		// observable on window:resize event to handle photo image size resize. Prefered to HostListener because you can debounce with observables
-		fromEvent(window, 'resize')
+		/* 		fromEvent(window, 'resize')
 			.pipe(
 				debounceTime(500),
-				map(() => {
-					return {
-						height: window.innerHeight,
-						width: window.innerWidth
-					};
-				})
+				map(() => { return { height: window.innerHeight, width: window.innerWidth }; })
 			)
 			.subscribe(() => {
-				this.canvas.width = Math.min(
-					/* this.photoImage.el.clientWidth - 50,*/ this.imgMaxWidth,
-					this.getCanvasXSize()
-				);
+				this.canvas.width = Math.min(this.imgMaxWidth, this.getCanvasXSize());
 				this.canvas.height = this.canvas.width * this.imgRatio;
 				debug('resizing canvas to (W)' + this.canvas.width + ' (H)' + this.canvas.height);
 				if (this.url) {
 					let img = new Image();
 					img.src = this.url;
 					img.onload = (event: Event) => {
-						this.ctx.drawImage(
-							img,
-							0,
-							/* (this.photoImage.el.clientWidth - this.canvas.width - 10) / 2, */
-							0,
-							this.canvas.width,
-							this.canvas.height
-						);
+						this.ctx.drawImage(img,0,0,this.canvas.width,this.canvas.height);
 					};
 				}
 			});
-
+ */
 		let paramId = this.route.snapshot.params['id'];
 
 		// event emitted when appellations, origines & types are loaded
@@ -214,23 +212,6 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 					this.vinForm.controls['appellation'].setValue(this.vin.appellation._id);
 					this.vinForm.controls['origine'].setValue(this.vin.origine._id);
 					this.vinForm.controls['type'].setValue(this.vin.type._id);
-					// Processing attachment and adjusting rendering canvas size to minimize real estate used by photo in case it doesn't exist.
-					if (this.vin['_attachments']) {
-						this.selectedImg = 'photoFile';
-						this.pouch.db
-							.getAttachment(this.vin._id, 'photoFile')
-							.then((blob) => {
-								this.imgBlob = blob;
-								this.showImageOnLoadWine(blob);
-							})
-							.catch(function(err) {
-								debug('[ngOnInit load attachment]Error : ' + err);
-							});
-					} else {
-						this.canvas = this.canvasEl.nativeElement;
-						this.canvas.height = 0;
-						this.canvas.width = 0;
-					}
 					this.nbreAvantUpdate = this.vin.nbreBouteillesReste;
 					this.newWine = false;
 					debug('[Vin.ngOnInit]Vin loaded : ' + JSON.stringify(this.vin));
@@ -245,6 +226,7 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 					});
 				}
 				this.vin = new VinModel(
+					'',
 					'',
 					'',
 					'',
@@ -267,7 +249,7 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 					'',
 					0,
 					[],
-					new File([], 'no file')
+					{ name: '', width: 0, heigth: 0, orientation: 1, fileType: '' }
 				);
 			}
 		});
@@ -302,27 +284,170 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 		debug('[entering ngAfterViewInit]');
 	}
 
-	public createOffscreenCanvas() {
-		let offScreenCanvas = document.createElement('canvas');
-		offScreenCanvas.width = 1360;
-		offScreenCanvas.height = 400;
-		var context = offScreenCanvas.getContext('2d');
-		context.fillStyle = 'orange'; //set fill color
-		context.fillRect(10, 10, 200, 200);
-		return offScreenCanvas; //return canvas element
+	public async loadImageAndView(type: string) {
+		let fileOrBlob: any;
+		if (type == 'file') {
+			let el = this.inputUploader.nativeElement;
+			if (el) {
+				fileOrBlob = el.files[0];
+				this.selectedPhoto.data = fileOrBlob;
+				this.vin.photo.name = fileOrBlob.name;
+			}
+		}
+		if (type == 'blob' && this.selectedPhoto.data.size == 0) {
+			try {
+				fileOrBlob = await this.pouch.db.getAttachment(this.vin._id, 'photoFile');
+			} catch (err) {
+				debug('[loadImageAndView]no attachemnt to load - error :', err);
+			}
+		} else if (type == 'blob' && this.selectedPhoto.data.size != 0) {
+			fileOrBlob = this.selectedPhoto.data;
+		}
+
+		this.modalCtrl
+			.create({
+				component: ViewerComponent,
+				componentProps: {
+					fileOrBlob: fileOrBlob,
+					previewType: type == 'file' ? 'add' : 'modify'
+				},
+				cssClass: 'auto-height'
+			})
+			.then(async (modal) => {
+				modal.present();
+				const { data } = await modal.onDidDismiss();
+				debug('[loadImageAndView]data from image preview modal : ' + JSON.stringify(data));
+				switch (data.choice) {
+					case 'delete':
+						this.vin.photo = { name: '', width: 0, heigth: 0, orientation: 1, fileType: '' };
+						this.selectedPhoto = {
+							contentType: 'jpeg',
+							data: new File([], 'Photo file')
+						};
+						try {
+							let result = await this.pouch.db.removeAttachment(this.vin._id, 'photoFile', this.vin._rev);
+						} catch (err) {
+							debug('[loadImageAndView]problem to delete attachment - error : ', err);
+						}
+						break;
+					case 'cancel':
+						if (data.from == 'add') {
+							this.selectedPhoto = {
+								contentType: 'jpeg',
+								data: new File([], 'Photo file')
+							};
+							this.vin.photo = { name: '', width: 0, heigth: 0, orientation: 1, fileType: '' };
+						} else if (data.from == 'modify') {
+							// Nothing to do
+						}
+						break;
+					case 'replace':
+						this.selectedPhoto = data.file;
+						this.vin.photo.name = data.file.name;
+						this.vin.photo.fileType = data.file.type;
+					case 'keep':
+						this.selectedPhoto.data = data.compressedBlob;
+						this.selectedPhoto.contentType = data.selectedFile.type;
+						this.vin.photo.name = data.selectedFile.name;
+						this.vin.photo.fileType = data.selectedFile.type;
+				}
+			});
 	}
 
-	public showImage() {
-		/* 		this.getCanvasDim();
-		this.canvas.height = this.canvasHeight;
-		this.canvas.width = this.canvasWidth;
+	/* 	public async loadImageAndView_old(type: string) {
+		let fileOrBlob: any;
+		if (type == 'file') {
+			let el = this.inputUploader.nativeElement;
+			if (el) {
+				fileOrBlob = el.files[0];
+				this.selectedPhoto = fileOrBlob;
+				this.vin.photo.fileType = fileOrBlob.type;
+				this.vin.photo.name = fileOrBlob.name;
+			}
+		}
+		if (type == 'blob' && this.selectedPhoto.size == 0) {
+			try {
+				fileOrBlob = await this.pouch.db.getAttachment(this.vin._id, 'photoFile');
+			} catch (err) {
+				debug('[loadImageAndView]no attachemnt to load - error :', err);
+			}
+		} else if (type == 'blob' && this.selectedPhoto.size != 0) {
+			fileOrBlob = this.selectedPhoto;
+		}
+		let img = new Image();
+		img.onload = () => {
+			this.offScreenCanvas.width = img.width;
+			this.offScreenCanvas.height = img.height;
+			debug('[loadImageAndView]img.onload (x,y) : (' + img.width + ',' + img.height + ')');
+			this.offScreenCanvas.getContext('2d').drawImage(img, 0, 0);
+			this.modalCtrl
+				.create({
+					component: ViewerComponent,
+					componentProps: {
+						image: img,
+						width: this.vin.photo.width,
+						height: this.vin.photo.heigth,
+						from: type == 'file' ? 'add' : 'modify'
+					}
+				})
+				.then(async (modal) => {
+					modal.present();
+					const { data } = await modal.onDidDismiss();
+					debug('[loadImageAndView]img.onload choice : ' + JSON.stringify(data));
+					switch (data.choice) {
+						case 'delete':
+							this.vin.photo = null;
+							try {
+								var rev = '1-068E73F5B44FEC987B51354DFC772891';
+								var result = await this.pouch.db.removeAttachment(
+									this.vin._id,
+									'photoFile',
+									this.vin._rev
+								);
+							} catch (err) {
+								debug('[loadImageAndView]problem to delete attachment - error : ', err);
+							}
+							break;
+						case 'cancel':
+							if (type == 'add') {
+								this.selectedPhoto = null;
+								this.vin.photo = { name: '', width: 0, heigth: 0, orientation: 1, fileType: '' };
+							}
+							break;
+						case 'replace':
+							this.selectedPhoto = data.file;
+							this.vin.photo.name = data.file.name;
+					}
+				});
+		};
+		loadImage.parseMetaData(fileOrBlob, (data) => {
+			var orientation = 0;
+			if (typeof data.exif !== 'undefined') {
+				orientation = parseInt(data.exif.get('Orientation'));
+				let allTags = data.exif.getAll();
+				this.imgRatio = allTags['PixelYDimension'] / allTags['PixelXDimension'];
+				debug(
+					'[showImage]orientation : ' +
+						orientation +
+						' - x: ' +
+						allTags['PixelXDimension'] +
+						' - y: ' +
+						allTags['PixelYDimension']
+				);
+				this.vin.photo.width = allTags['PixelXDimension'];
+				this.vin.photo.heigth = allTags['PixelYDimension'];
+				this.vin.photo.orientation = orientation;
+			}
+			img.src = URL.createObjectURL(fileOrBlob);
+		});
+	}
  */
 
-		this.canvas.width = Math.min(/* this.photoImage.el.clientWidth - 50,*/ this.imgMaxWidth, this.getCanvasXSize());
+	/* 	public showImage() {
+		this.canvas.width = Math.min(this.imgMaxWidth, this.getCanvasXSize());
 		this.canvas.height = this.canvas.width * this.imgRatio;
 		this.ctx = this.canvas.getContext('2d');
 		let reader = new FileReader();
-		//let el = this.ionInputElRef.nativeElement.shadowRoot.querySelector('input') as HTMLInputElement;
 		let el = this.inputUploader.nativeElement;
 		if (el) {
 			let file = el.files[0];
@@ -341,6 +466,9 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 								' - y: ' +
 								allTags['PixelYDimension']
 						);
+						this.vin.photo.width = allTags['PixelXDimension'];
+						this.vin.photo.heigth = allTags['PixelYDimension'];
+						this.vin.photo.orientation = orientation;
 					}
 					loadImage(
 						file,
@@ -353,7 +481,7 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 							//this.canvas.heigth = img.height;
 							this.ctx.drawImage(this.offScreenCanvas, 0, 0);
 						}, // Options
-						/* { maxWidth: this.canvasWidth, maxHeight: this.canvasHeight, orientation: orientation } */ {
+						{
 							minWidth: this.imgMinWidth,
 							minHeight: this.imgMinWidth * this.imgRatio,
 							maxWidth: this.imgMaxWidth,
@@ -362,45 +490,30 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 						} // Options
 					);
 				});
-				this.vin.photo = file;
-				this.selectedImg = file.name;
+				this.selectedPhoto = file;
+				this.vin.photo.name = file.name;
 			}
 		}
 	}
-
-	public showImageOnLoadWine(blob) {
-		debug('[showImageOnLoadWine]image size is : ' + blob.size);
-		/* 		this.getCanvasDim();
  */
+	/* 	public showImageOnLoadWine(blob) {
+		debug('[showImageOnLoadWine]image size is : ' + blob.size);
 		loadImage.parseMetaData(blob, (data) => {
 			if (typeof data.exif !== 'undefined') {
 				let allTags = data.exif.getAll();
 				this.imgRatio = allTags['PixelYDimension'] / allTags['PixelXDimension'];
 			}
 		});
-		this.canvas.width = Math.min(/* this.photoImage.el.clientWidth - 50,*/ this.imgMaxWidth, this.getCanvasXSize());
+		this.canvas.width = Math.min(this.imgMaxWidth, this.getCanvasXSize());
 		this.canvas.height = this.canvas.width * this.imgRatio;
 		if (!this.url) this.url = URL.createObjectURL(blob);
 		let img = new Image();
 		img.src = this.url;
 		img.onload = (event: Event) => {
-			//			this.ctx.drawImage(img, 0, 0, this.canvasWidth, this.canvasHeight);
-			/* 			this.ctx.drawImage(
-				img,
-				(this.photoImage.el.clientWidth - this.canvas.width - 10) / 2,
-				0,
-				this.canvas.width,
-				this.canvas.height
-			);
- */ this.ctx.drawImage(
-				img,
-				0,
-				0,
-				this.canvas.width,
-				this.canvas.height
-			);
+			this.ctx.drawImage(img, 0, 0, this.canvas.width, this.canvas.height);
 		};
 	}
+ */
 
 	public ngOnDestroy() {
 		debug('[Vin.ngOnDestroy]called');
@@ -454,27 +567,38 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 				});
 				this.vin.remarque = '';
 			}
-			if (this.vin.photo && this.vin.photo.size != 0) {
-				let fileName = this.vin.photo['name'];
-				if (this.vin.photo.type == 'image/jpeg') {
-					let blob: any = new Blob();
-					blob = await this.canvasToBlob(this.offScreenCanvas, 0.94);
-					debug('[saveVin]saved image file size : ' + blob.size);
+			if (this.selectedPhoto && this.selectedPhoto.data && this.selectedPhoto.data.size != 0) {
+				if (this.selectedPhoto.contentType == 'image/jpeg') {
+					//let blob: any = new Blob();
+					/* 					pica
+						.resize(this.offScreenCanvas, this.canvas, {
+							unsharpAmount: 170,
+							unsharpRadius: 0.6,
+							unsharpThreshold: 5,
+							quality: 3
+						})
+						.then(() => {
+							debug('[ngOnInit] resize done !');
+							//this.canvas.getContext('2d', { alpha: Boolean(alpha) }).drawImage(offScreenCanvas, 0, 0);
+						});
+ */
+					//	this.offScreenCanvas.toBlob(quality:0.90)
+					//blob = await this.canvasToBlob(this.offScreenCanvas, 0.8);
+					debug('[saveVin]saved image file size : ' + this.selectedPhoto.data.size);
 					this.vin['_attachments'] = {
 						photoFile: {
 							content_type: 'image/jpeg',
-							data: blob
+							data: this.selectedPhoto.data
 						}
 					};
 				} else {
 					this.vin['_attachments'] = {
 						photoFile: {
-							content_type: this.vin.photo.type,
-							data: this.vin.photo
+							content_type: this.selectedPhoto.contentType,
+							data: this.selectedPhoto.data
 						}
 					};
 				}
-				delete this.vin.photo;
 			}
 			this.pouch.saveDoc(this.vin, 'vin').then((response) => {
 				if (response.ok) {

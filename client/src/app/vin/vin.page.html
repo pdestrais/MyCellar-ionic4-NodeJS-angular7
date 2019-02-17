@@ -202,22 +202,18 @@
       </ion-col>
     </ion-row>
     <ion-row>
-      <ion-col size=auto>
-        <ion-label>
-          Photo
-        </ion-label>
-        <div *ngIf="selectedImg.length!=0">
-          <label for="uploadphoto">{{'changeImage' | translate }}</label>
+      <ion-col size=auto *ngIf="!vin.photo.name|| (vin.photo.name && vin.photo.name.length==0)">
+        <div>
+          <ion-icon size="large" name="camera"></ion-icon>
+          <label for="uploadphoto">{{'addImage' | translate }}</label>
         </div>
-        <input #uploadphoto type="file" accept="image/*" id="uploadphoto" (change)="showImage()" />
+        <input #uploadphoto type="file" accept="image/*" id="uploadphoto" (change)="loadImageAndView('file')" />
       </ion-col>
-      <ion-col #photoImage>
-        <div *ngIf="selectedImg.length==0">
-          <label for="uploadphoto" class="nophoto">{{'addImage' | translate }}</label>
-        </div>
-        <div class="ion-canvas">
-          <canvas #canvas height="0" width="0"></canvas>
-        </div>
+      <ion-col #photoImage *ngIf="vin.photo.name && vin.photo.name.length!=0">
+        <ion-button (click)="loadImageAndView('blob')">
+          <ion-icon slot="end" name="image"></ion-icon>
+          {{vin.photo.name}}
+        </ion-button>
       </ion-col>
     </ion-row>
     <!--     <ion-row>

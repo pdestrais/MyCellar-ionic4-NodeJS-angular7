@@ -1,0 +1,47 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-button (click)="dismiss('cancel')">
+        <ion-icon slot="icon-only" name="arrow-round-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>
+      {{'page.wine' | translate }}
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+<div class="inner-content">
+  <ion-grid>
+    <ion-row>
+      <ion-col #canvasContainer>
+        <canvas #selectedPhoto></canvas>
+      </ion-col>
+    </ion-row>
+    <ion-row justify-content-center>
+      <ion-col *ngIf="from=='add'">
+        <ion-button fill="outline" (click)="dismiss('keep')">
+          {{'Keep' | translate }}
+        </ion-button>
+      </ion-col>
+      <ion-col>
+        <ion-button color="secondary" fill="outline" (click)="dismiss('cancel')">
+          {{'Cancel' | translate }}
+        </ion-button>
+      </ion-col>
+      <ion-col *ngIf="from=='modify'">
+        <label for="uploadphoto" [ngClass]="'button button-outline'">{{'Replace' | translate }}</label>
+        <input #uploadphoto type="file" accept="image/*" id="uploadphoto" (change)="loadPhoto()" />
+
+        <!--         <ion-button fill="outline" (click)="dismiss('replace')">
+          Replace
+        </ion-button>
+ -->
+      </ion-col>
+      <ion-col *ngIf="from=='modify'">
+        <ion-button color="danger" fill="outline" (click)="dismiss('delete')">
+          {{'Delete' | translate }}
+        </ion-button>
+      </ion-col>
+    </ion-row>
+  </ion-grid>
+</div>

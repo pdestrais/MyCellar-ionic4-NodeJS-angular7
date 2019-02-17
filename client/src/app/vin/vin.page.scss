@@ -30,8 +30,8 @@ label {
   background: #3880ff;
   border-radius: .5em;
   color: white;
-  margin-top: 50px;
-  float: left;
+  margin-left: 50px;
+  float: right;
   padding: .5em;
 
   /* Style as you please, it will become the visible UI component. */
@@ -78,4 +78,8 @@ p.invalid {
 
 .select-md {
   min-width: 70%;
+}
+
+#hiddenInput {
+  display: none;
 }
