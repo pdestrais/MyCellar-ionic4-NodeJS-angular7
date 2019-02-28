@@ -6,7 +6,7 @@
     "appellation": "Appellation",
     "region": "Region",
     "type": "Type",
-    "report": "Rapport",
+    "report": "Rapport/Recherche",
     "stats": "Statistiques",
     "search": "Recherche",
     "about": "A propos"
@@ -103,7 +103,7 @@
   },
   "about": {
     "appInfo": "Informations sur l'application",
-    "appVersion": "Version :",
+    "appVersion": "Version",
     "appName": "Nom"
   },
   "type": {

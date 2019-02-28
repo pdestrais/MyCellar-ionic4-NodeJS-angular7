@@ -85,7 +85,7 @@ export class AppComponent {
 				iconSrc: './assets/imgs/wine_type.svg'
 			},
 			{
-				displayText: this.translate.instant('report.reports'),
+				displayText: this.translate.instant('page.report'),
 				suboptions: [
 					{
 						displayText: this.translate.instant('report.yearlyReport'),

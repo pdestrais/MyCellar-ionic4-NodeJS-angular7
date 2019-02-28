@@ -26,7 +26,7 @@ function createWindow() {
     width: 1200,
     height: 800,
     title: 'MyCellar App',
-    icon: __dirname + '/build/mac/icon.icns'
+    icon: __dirname + '/build/mac/AppIcon.icns'
     //icon: '/Users/pdestrais/Projects/MyCellar-ionic4-NodeJS/client/src/assets/icon/MyCellar-PWA-icon-192.png'
   });
 
