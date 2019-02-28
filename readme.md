@@ -16,7 +16,7 @@ the following command is used to start the dev server (from the project root/cli
 
 To test the application under electron, build the code using 
 
-     npm run build
+     npm run buildElectron
 
 A 'www' directory will be created. This directory will be used for NodeJS as well as for electron.
 
@@ -29,22 +29,30 @@ To test with NodeJS, go to root directory and start nodeJS with
      npm start
 
 ### build prepare for the different deployment targets
-First, build the application for the 'client' directory
+
+- First, build the application for the 'client' directory. For the web, PWA or mobile targets :
 
      ionic build --prod or npm run buildProd
 
-- prepare to build the desktop application using electron builder
+     For the Electron target :
 
-        npm run dist
+        npm run buildElectron
 
-  A 'dist' directory will be created under the root of the project.
-  A 'dmg' file has been created, double click on the file to install on the OS.
+- Second, push or create the deployment package
+     - For Electron : prepare to build the electron desktop application using electron builder
 
-- prepare to release publish as a nodeJS app on the IBM cloud (you need to have a user id on IBM cloud).
-Go to the root directory, then login to could foundry (if not yet done) and push the nodeJS as a cloudfoundry application :
+               npm run dist
 
-       cf login
-       cf push
+          A 'dist' directory will be created under the root of the project.
+          A 'dmg' file has been created, double click on the file to install on the OS.
+
+     - For the web app and PWA
+     
+          prepare to release publish as a nodeJS app on the IBM cloud (you need to have a user id on IBM cloud).
+          Go to the root directory, then login to could foundry (if not yet done) and push the nodeJS as a cloudfoundry application :
+
+               cf login
+               cf push
 
 
 

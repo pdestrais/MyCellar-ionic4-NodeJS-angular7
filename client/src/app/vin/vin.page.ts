@@ -10,7 +10,14 @@ import {
 	ViewChild,
 	ChangeDetectorRef
 } from '@angular/core';
-import { NavController, NavParams, AlertController, ModalController, LoadingController } from '@ionic/angular';
+import {
+	NavController,
+	NavParams,
+	AlertController,
+	ModalController,
+	LoadingController,
+	Platform
+} from '@ionic/angular';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { PouchdbService } from '../services/pouchdb.service';
 import { VinModel, AppellationModel, OrigineModel, TypeModel } from '../models/cellar.model';
@@ -55,11 +62,11 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 	private mq800: MediaQueryList = window.matchMedia('(min-width:501px) and (max-width: 800px )');
 	private mq2000: MediaQueryList = window.matchMedia('(min-width:920px)');
  */
-	private url: any;
-	private imgRatio: number = 4 / 3;
-	private imgMinWidth: number = 150;
-	private imgMaxWidth: number = 550;
-	private offScreenCanvas: HTMLCanvasElement = document.createElement('canvas');
+	///	private url: any;
+	//	private imgRatio: number = 4 / 3;
+	//	private imgMinWidth: number = 150;
+	//	private imgMaxWidth: number = 550;
+	//	private offScreenCanvas: HTMLCanvasElement = document.createElement('canvas');
 	private selectedPhoto: { contentType: string; data: File } = {
 		contentType: 'jpeg',
 		data: new File([], 'Photo file')
@@ -82,7 +89,8 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 		private modalCtrl: ModalController,
 		private http: HttpClient,
 		private toastCtrl: ToastController,
-		private loadingCtrl: LoadingController
+		private loadingCtrl: LoadingController,
+		private platform: Platform
 	) {
 		this.vin = new VinModel(
 			'',
@@ -165,11 +173,11 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 	public ngOnInit() {
 		debug('[Vin.ngOnInit]called');
 		//this.canvas = this.canvasEl.nativeElement;
-		this.canvas = document.createElement('canvas');
+		//this.canvas = document.createElement('canvas');
 		//this.getCanvasDim();
-		this.canvas.height = this.imgMinWidth * this.imgRatio;
-		this.canvas.width = this.imgMinWidth;
-		this.ctx = this.canvas.getContext('2d');
+		//this.canvas.height = this.imgMinWidth * this.imgRatio;
+		//this.canvas.width = this.imgMinWidth;
+		//this.ctx = this.canvas.getContext('2d');
 		// observable on window:resize event to handle photo image size resize. Prefered to HostListener because you can debounce with observables
 		/* 		fromEvent(window, 'resize')
 			.pipe(
@@ -291,7 +299,11 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 			if (el) {
 				fileOrBlob = el.files[0];
 				this.selectedPhoto.data = fileOrBlob;
-				this.vin.photo.name = fileOrBlob.name;
+				debug('[loadImageAndView]platform : ' + this.platform.platforms());
+				if (this.platform.is('ios') || this.platform.is('ipad')) {
+					let now = moment();
+					this.vin.photo.name = now.format('YYYY-MM-DD_hh-mm-ss') + '_img.jpeg';
+				} else this.vin.photo.name = fileOrBlob.name;
 			}
 		}
 		if (type == 'blob' && this.selectedPhoto.data.size == 0) {
@@ -309,7 +321,7 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 				component: ViewerComponent,
 				componentProps: {
 					fileOrBlob: fileOrBlob,
-					previewType: type == 'file' ? 'add' : 'modify'
+					action: type == 'file' ? 'add' : 'modify'
 				},
 				cssClass: 'auto-height'
 			})
@@ -326,6 +338,7 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 						};
 						try {
 							let result = await this.pouch.db.removeAttachment(this.vin._id, 'photoFile', this.vin._rev);
+							debug('[loadImageAndView]delete attachment success');
 						} catch (err) {
 							debug('[loadImageAndView]problem to delete attachment - error : ', err);
 						}
@@ -337,7 +350,7 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 								data: new File([], 'Photo file')
 							};
 							this.vin.photo = { name: '', width: 0, heigth: 0, orientation: 1, fileType: '' };
-						} else if (data.from == 'modify') {
+						} else if (data.from == 'replace') {
 							// Nothing to do
 						}
 						break;
@@ -569,21 +582,6 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 			}
 			if (this.selectedPhoto && this.selectedPhoto.data && this.selectedPhoto.data.size != 0) {
 				if (this.selectedPhoto.contentType == 'image/jpeg') {
-					//let blob: any = new Blob();
-					/* 					pica
-						.resize(this.offScreenCanvas, this.canvas, {
-							unsharpAmount: 170,
-							unsharpRadius: 0.6,
-							unsharpThreshold: 5,
-							quality: 3
-						})
-						.then(() => {
-							debug('[ngOnInit] resize done !');
-							//this.canvas.getContext('2d', { alpha: Boolean(alpha) }).drawImage(offScreenCanvas, 0, 0);
-						});
- */
-					//	this.offScreenCanvas.toBlob(quality:0.90)
-					//blob = await this.canvasToBlob(this.offScreenCanvas, 0.8);
 					debug('[saveVin]saved image file size : ' + this.selectedPhoto.data.size);
 					this.vin['_attachments'] = {
 						photoFile: {

@@ -1,4 +1,4 @@
-<ion-header>
+<!-- <ion-header>
   <ion-toolbar color="primary">
     <ion-buttons slot="start">
       <ion-button (click)="dismiss('cancel')">
@@ -10,38 +10,38 @@
     </ion-title>
   </ion-toolbar>
 </ion-header>
-<div class="inner-content">
+ -->
+<div #modalContent class="inner-content">
+  <!-- <ion-content> -->
   <ion-grid>
     <ion-row>
       <ion-col #canvasContainer>
         <canvas #selectedPhoto></canvas>
       </ion-col>
     </ion-row>
-    <ion-row justify-content-center>
-      <ion-col *ngIf="from=='add'">
-        <ion-button fill="outline" (click)="dismiss('keep')">
+    <ion-row justify-content-center align-items-center>
+      <ion-col *ngIf="action=='add' || action=='replace'">
+        <ion-button fill="clear" size="small" (click)="dismiss('keep')">
           {{'Keep' | translate }}
         </ion-button>
       </ion-col>
       <ion-col>
-        <ion-button color="secondary" fill="outline" (click)="dismiss('cancel')">
+        <ion-button color="secondary" fill="clear" (click)="dismiss('cancel')">
           {{'Cancel' | translate }}
         </ion-button>
       </ion-col>
-      <ion-col *ngIf="from=='modify'">
-        <label for="uploadphoto" [ngClass]="'button button-outline'">{{'Replace' | translate }}</label>
-        <input #uploadphoto type="file" accept="image/*" id="uploadphoto" (change)="loadPhoto()" />
-
-        <!--         <ion-button fill="outline" (click)="dismiss('replace')">
-          Replace
-        </ion-button>
- -->
+      <ion-col *ngIf="action=='modify'">
+        <div text-center>
+          <label for="uploadphoto" [ngClass]="'button button-outline'">{{'Replace' | translate }}</label>
+          <input #uploadphoto type="file" accept="image/*" id="uploadphoto" (change)="loadPhoto()" />
+        </div>
       </ion-col>
-      <ion-col *ngIf="from=='modify'">
-        <ion-button color="danger" fill="outline" (click)="dismiss('delete')">
+      <ion-col *ngIf="action=='modify'">
+        <ion-button color="danger" fill="clear" (click)="dismiss('delete')">
           {{'Delete' | translate }}
         </ion-button>
       </ion-col>
     </ion-row>
   </ion-grid>
+  <!-- </ion-content> -->
 </div>

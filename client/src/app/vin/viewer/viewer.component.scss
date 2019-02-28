@@ -1,4 +1,4 @@
-label {
+labelButton {
   cursor: pointer;
   position: relative;
   //  background: transparent;
@@ -31,6 +31,10 @@ label {
   text-transform: uppercase;
 }
 
+label {
+  color: #3880ff;
+}
+
 label.nophoto {
   margin-top: 0px;
 }
@@ -41,7 +45,12 @@ label.nophoto {
   z-index: -1;
 }
 
-ion-modal.auto-height {
+/* .modal-wrapper.modal-wrapper-md.sc-ion-modal-md {
+  height: 640px;
+  width: 360px;
+}
+ */
+/* ion-modal.auto-height {
   &.bottom {
     align-items: flex-end;
   }
@@ -61,7 +70,7 @@ ion-modal.auto-height {
     }
   }
 }
-
+ */
 /* .sc-ion-modal-md-h {
   --height: 640;
   --width: 360;
