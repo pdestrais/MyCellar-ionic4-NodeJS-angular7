@@ -575,6 +575,12 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 		);
 	}
 
+	adjustQuantityLeft(q: number) {
+		let ctrl = this.vinForm.get('nbreBouteillesReste');
+		let newQty = ctrl.value + q;
+		ctrl.patchValue(newQty);
+	}
+
 	async presentLoading() {
 		const loading = await this.loadingCtrl.create({
 			message: 'getting GWS Score'
