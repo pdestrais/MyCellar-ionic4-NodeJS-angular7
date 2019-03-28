@@ -44,7 +44,14 @@ To test with NodeJS, go to root directory and start nodeJS with
                npm run dist
 
           A 'dist' directory will be created under the root of the project.
-          A 'dmg' file has been created, double click on the file to install on the OS.
+          A 'dmg' file has been created, double click on the file to install on the OS.<br>
+          Sometimes, the command doesn't work. This seems to be relative to file permission issues, in that case, try to execute the same command with 'sudo'.
+
+          If this still doesn't work, try to use yarn
+
+               yarn add electron-builder --dev
+
+          Then you can run `yarn dist`.
 
      - For the web app and PWA
      
@@ -57,7 +64,22 @@ To test with NodeJS, go to root directory and start nodeJS with
 
 
 **Remark**
-The cloudant remote DB URL used for development is the following :
+1. The cloudant remote DB URL used for development is the following :
 
 http://admin:admin@127.0.0.1:5984/cave_phd_prod
+
+2. The generated API key for the app-users database is :
+Key:sesonthedlyinationceands
+Password:e95b3878f33141c8a93245b46f79111723a2d19f
+
+https://sesonthedlyinationceands:e95b3878f33141c8a93245b46f79111723a2d19f@d9b71086-9d4d-45ed-b6f8-42ffbfcbec84-bluemix.cloudant.com/dashboard.html
+
+3. Cloudant NoSQL DB-kf (account philippe_destrais@be.ibm.com) service credentials are :
+{
+  "username": "d9b71086-9d4d-45ed-b6f8-42ffbfcbec84-bluemix",
+  "password": "eadc2fb095f724f11fbb3c523694d1bef8b8e09a8d88d8c15891d37c13eb90ec",
+  "host": "d9b71086-9d4d-45ed-b6f8-42ffbfcbec84-bluemix.cloudant.com",
+  "port": 443,
+  "url": "https://d9b71086-9d4d-45ed-b6f8-42ffbfcbec84-bluemix:eadc2fb095f724f11fbb3c523694d1bef8b8e09a8d88d8c15891d37c13eb90ec@d9b71086-9d4d-45ed-b6f8-42ffbfcbec84-bluemix.cloudant.com"
+}
 

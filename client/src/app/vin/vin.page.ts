@@ -1,29 +1,13 @@
-import { Subject, fromEvent } from 'rxjs';
+import { Subject, of, merge } from 'rxjs';
 import { TranslateService } from '@ngx-translate/core';
-import {
-	Component,
-	OnInit,
-	OnDestroy,
-	AfterViewInit,
-	Input,
-	ElementRef,
-	ViewChild,
-	ChangeDetectorRef
-} from '@angular/core';
-import {
-	NavController,
-	NavParams,
-	AlertController,
-	ModalController,
-	LoadingController,
-	Platform
-} from '@ionic/angular';
+import { Component, OnInit, OnDestroy, AfterViewInit, Input, ElementRef, ViewChild } from '@angular/core';
+import { NavController, AlertController, ModalController, LoadingController, Platform } from '@ionic/angular';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { PouchdbService } from '../services/pouchdb.service';
 import { VinModel, AppellationModel, OrigineModel, TypeModel } from '../models/cellar.model';
 import { HttpClient } from '@angular/common/http';
 import moment from 'moment/src/moment';
-import { map, debounceTime } from 'rxjs/operators';
+import { map, debounceTime, switchMap } from 'rxjs/operators';
 import { ToastController } from '@ionic/angular';
 import { ActivatedRoute } from '@angular/router';
 import loadImage from 'blueimp-load-image/js/index';
@@ -52,9 +36,11 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 	public nameYearForm: FormGroup;
 	public submitted: boolean;
 	private obs: Subject<string> = new Subject();
-	public priceRegExp: RegExp = new RegExp('^[0-9]+(,[0-9]{1,2})?$');
-	private ctx: any;
-	private canvas: any;
+	private priceRegExp: RegExp = new RegExp('^[0-9]+(,[0-9]{1,2})?$');
+	private originalName;
+	private originalYear;
+	//	private ctx: any;
+	//	private canvas: any;
 	/* 	private canvasHeight: number = 200;
 	private canvasWidth: number = 150;
 	private mq420: MediaQueryList = window.matchMedia('(max-width: 420px)');
@@ -118,22 +104,8 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 		this.pouch
 			.getDocsOfType('vin')
 			.then((vins) => (this.vinsMap = new Map(vins.map((v) => [ v.nom + v.annee, v ]))));
-		/* 		this.nameYearForm = this.formBuilder.group(
-			{
-				nom: [ '', Validators.required ],
-				annee: [
-					'',
-					Validators.compose([
-						Validators.minLength(4),
-						Validators.maxLength(4),
-						Validators.pattern('[0-9]*'),
-						Validators.required
-					])
-				]
-			},
-			{ validator: this.noDouble.bind(this) }
-		);
- */ this.vinForm = this.formBuilder.group(
+
+		this.vinForm = this.formBuilder.group(
 			{
 				nom: [ '', Validators.required ],
 				annee: [
@@ -157,52 +129,28 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 						Validators.required
 					])
 				],
-				//        prixAchat: [0,Validators.required],
 				dateAchat: [ '', Validators.required ],
 				localisation: [ '', Validators.required ],
 				apogee: [ '', Validators.pattern('^[0-9]{4,4}-[0-9]{4,4}$') ],
 				contenance: [ '' ],
 				cepage: [ '' ],
 				GWSScore: [ '' ]
-			},
-			{ validator: this.noDouble.bind(this) }
+			} //,
+			//{ validator: this.noDouble.bind(this) }
 		);
 		this.submitted = false;
 	}
 
 	public ngOnInit() {
 		debug('[Vin.ngOnInit]called');
-		//this.canvas = this.canvasEl.nativeElement;
-		//this.canvas = document.createElement('canvas');
-		//this.getCanvasDim();
-		//this.canvas.height = this.imgMinWidth * this.imgRatio;
-		//this.canvas.width = this.imgMinWidth;
-		//this.ctx = this.canvas.getContext('2d');
-		// observable on window:resize event to handle photo image size resize. Prefered to HostListener because you can debounce with observables
-		/* 		fromEvent(window, 'resize')
-			.pipe(
-				debounceTime(500),
-				map(() => { return { height: window.innerHeight, width: window.innerWidth }; })
-			)
-			.subscribe(() => {
-				this.canvas.width = Math.min(this.imgMaxWidth, this.getCanvasXSize());
-				this.canvas.height = this.canvas.width * this.imgRatio;
-				debug('resizing canvas to (W)' + this.canvas.width + ' (H)' + this.canvas.height);
-				if (this.url) {
-					let img = new Image();
-					img.src = this.url;
-					img.onload = (event: Event) => {
-						this.ctx.drawImage(img,0,0,this.canvas.width,this.canvas.height);
-					};
-				}
-			});
- */
 		let paramId = this.route.snapshot.params['id'];
 
 		// event emitted when appellations, origines & types are loaded
 		this.obs.subscribe((message) => {
 			if (paramId) {
 				this.pouch.getDoc(paramId).then((vin) => {
+					this.originalName = vin.nom;
+					this.originalYear = vin.annee;
 					Object.assign(this.vin, vin);
 					this.vinForm.setValue(
 						this.reject(this.vin, [
@@ -217,9 +165,9 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 							'photo'
 						])
 					);
-					this.vinForm.controls['appellation'].setValue(this.vin.appellation._id);
-					this.vinForm.controls['origine'].setValue(this.vin.origine._id);
-					this.vinForm.controls['type'].setValue(this.vin.type._id);
+					this.vinForm.get('appellation').patchValue(this.vin.appellation._id);
+					this.vinForm.controls['origine'].patchValue(this.vin.origine._id);
+					this.vinForm.controls['type'].patchValue(this.vin.type._id);
 					this.nbreAvantUpdate = this.vin.nbreBouteillesReste;
 					this.newWine = false;
 					debug('[Vin.ngOnInit]Vin loaded : ' + JSON.stringify(this.vin));
@@ -286,6 +234,16 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 				});
 			});
 		});
+
+		merge(this.vinForm.get('nom').valueChanges, this.vinForm.get('annee').valueChanges)
+			.pipe(debounceTime(1000))
+			.subscribe((value) => {
+				debug('[ngInit]on name or year value change', +JSON.stringify(value));
+				let checkDuplicate = this.noDouble(this.vinForm);
+				if (checkDuplicate != null) {
+					this.vinForm.setErrors({ double: true });
+				}
+			});
 	}
 
 	public ngAfterViewInit() {
@@ -366,167 +324,6 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 				}
 			});
 	}
-
-	/* 	public async loadImageAndView_old(type: string) {
-		let fileOrBlob: any;
-		if (type == 'file') {
-			let el = this.inputUploader.nativeElement;
-			if (el) {
-				fileOrBlob = el.files[0];
-				this.selectedPhoto = fileOrBlob;
-				this.vin.photo.fileType = fileOrBlob.type;
-				this.vin.photo.name = fileOrBlob.name;
-			}
-		}
-		if (type == 'blob' && this.selectedPhoto.size == 0) {
-			try {
-				fileOrBlob = await this.pouch.db.getAttachment(this.vin._id, 'photoFile');
-			} catch (err) {
-				debug('[loadImageAndView]no attachemnt to load - error :', err);
-			}
-		} else if (type == 'blob' && this.selectedPhoto.size != 0) {
-			fileOrBlob = this.selectedPhoto;
-		}
-		let img = new Image();
-		img.onload = () => {
-			this.offScreenCanvas.width = img.width;
-			this.offScreenCanvas.height = img.height;
-			debug('[loadImageAndView]img.onload (x,y) : (' + img.width + ',' + img.height + ')');
-			this.offScreenCanvas.getContext('2d').drawImage(img, 0, 0);
-			this.modalCtrl
-				.create({
-					component: ViewerComponent,
-					componentProps: {
-						image: img,
-						width: this.vin.photo.width,
-						height: this.vin.photo.heigth,
-						from: type == 'file' ? 'add' : 'modify'
-					}
-				})
-				.then(async (modal) => {
-					modal.present();
-					const { data } = await modal.onDidDismiss();
-					debug('[loadImageAndView]img.onload choice : ' + JSON.stringify(data));
-					switch (data.choice) {
-						case 'delete':
-							this.vin.photo = null;
-							try {
-								var rev = '1-068E73F5B44FEC987B51354DFC772891';
-								var result = await this.pouch.db.removeAttachment(
-									this.vin._id,
-									'photoFile',
-									this.vin._rev
-								);
-							} catch (err) {
-								debug('[loadImageAndView]problem to delete attachment - error : ', err);
-							}
-							break;
-						case 'cancel':
-							if (type == 'add') {
-								this.selectedPhoto = null;
-								this.vin.photo = { name: '', width: 0, heigth: 0, orientation: 1, fileType: '' };
-							}
-							break;
-						case 'replace':
-							this.selectedPhoto = data.file;
-							this.vin.photo.name = data.file.name;
-					}
-				});
-		};
-		loadImage.parseMetaData(fileOrBlob, (data) => {
-			var orientation = 0;
-			if (typeof data.exif !== 'undefined') {
-				orientation = parseInt(data.exif.get('Orientation'));
-				let allTags = data.exif.getAll();
-				this.imgRatio = allTags['PixelYDimension'] / allTags['PixelXDimension'];
-				debug(
-					'[showImage]orientation : ' +
-						orientation +
-						' - x: ' +
-						allTags['PixelXDimension'] +
-						' - y: ' +
-						allTags['PixelYDimension']
-				);
-				this.vin.photo.width = allTags['PixelXDimension'];
-				this.vin.photo.heigth = allTags['PixelYDimension'];
-				this.vin.photo.orientation = orientation;
-			}
-			img.src = URL.createObjectURL(fileOrBlob);
-		});
-	}
- */
-
-	/* 	public showImage() {
-		this.canvas.width = Math.min(this.imgMaxWidth, this.getCanvasXSize());
-		this.canvas.height = this.canvas.width * this.imgRatio;
-		this.ctx = this.canvas.getContext('2d');
-		let reader = new FileReader();
-		let el = this.inputUploader.nativeElement;
-		if (el) {
-			let file = el.files[0];
-			if (file && file.size != 0) {
-				loadImage.parseMetaData(file, (data) => {
-					var orientation = 0;
-					if (typeof data.exif !== 'undefined') {
-						orientation = parseInt(data.exif.get('Orientation'));
-						let allTags = data.exif.getAll();
-						this.imgRatio = allTags['PixelYDimension'] / allTags['PixelXDimension'];
-						debug(
-							'[showImage]orientation : ' +
-								orientation +
-								' - x: ' +
-								allTags['PixelXDimension'] +
-								' - y: ' +
-								allTags['PixelYDimension']
-						);
-						this.vin.photo.width = allTags['PixelXDimension'];
-						this.vin.photo.heigth = allTags['PixelYDimension'];
-						this.vin.photo.orientation = orientation;
-					}
-					loadImage(
-						file,
-						(img) => {
-							this.offScreenCanvas.width = img.width;
-							this.offScreenCanvas.height = img.height;
-							debug('[showImage]loadImage (x,y) : (' + img.width + ',' + img.height + ')');
-							this.offScreenCanvas.getContext('2d').drawImage(img, 0, 0);
-							//this.canvas.width = img.width;
-							//this.canvas.heigth = img.height;
-							this.ctx.drawImage(this.offScreenCanvas, 0, 0);
-						}, // Options
-						{
-							minWidth: this.imgMinWidth,
-							minHeight: this.imgMinWidth * this.imgRatio,
-							maxWidth: this.imgMaxWidth,
-							maxHeight: this.imgMaxWidth * this.imgRatio,
-							orientation: orientation
-						} // Options
-					);
-				});
-				this.selectedPhoto = file;
-				this.vin.photo.name = file.name;
-			}
-		}
-	}
- */
-	/* 	public showImageOnLoadWine(blob) {
-		debug('[showImageOnLoadWine]image size is : ' + blob.size);
-		loadImage.parseMetaData(blob, (data) => {
-			if (typeof data.exif !== 'undefined') {
-				let allTags = data.exif.getAll();
-				this.imgRatio = allTags['PixelYDimension'] / allTags['PixelXDimension'];
-			}
-		});
-		this.canvas.width = Math.min(this.imgMaxWidth, this.getCanvasXSize());
-		this.canvas.height = this.canvas.width * this.imgRatio;
-		if (!this.url) this.url = URL.createObjectURL(blob);
-		let img = new Image();
-		img.src = this.url;
-		img.onload = (event: Event) => {
-			this.ctx.drawImage(img, 0, 0, this.canvas.width, this.canvas.height);
-		};
-	}
- */
 
 	public ngOnDestroy() {
 		debug('[Vin.ngOnDestroy]called');
@@ -801,13 +598,14 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 	}
 
 	private noDouble(group: FormGroup) {
-		//debug('nodouble called');
+		debug('nodouble called');
 		if (!group.controls.nom || !group.controls.annee) return null;
-		if (!group.controls.nom.dirty || !group.controls.annee.dirty) return null;
+		//		if (!group.controls.nom.dirty || !group.controls.annee.dirty) return null;
+		if (group.get('nom').value == this.originalName && group.get('annee').value == this.originalYear) return null;
 		let testKey = group.value.nom + group.value.annee;
 		if (this.vinsMap && this.vinsMap.has(testKey)) {
 			debug('[Vin.noDouble]double detected');
-			return { double: true };
+			return of({ double: true });
 		} else return null;
 	}
 

@@ -44,7 +44,7 @@ label.nophoto {
 #uploadphoto {
   opacity: 0;
   position: absolute;
-  z-index: -1;
+  /* z-index: -1; creates problems with other input elements that look like frozen when this style is activeted */
 }
 
 .fileContainer {
