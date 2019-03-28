@@ -145,8 +145,23 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 		debug('[Vin.ngOnInit]called');
 		let paramId = this.route.snapshot.params['id'];
 
-		// event emitted when appellations, origines & types are loaded
-		this.obs.subscribe((message) => {
+		Promise.all([
+			this.pouch.getDocsOfType('origine'),
+			this.pouch.getDocsOfType('appellation'),
+			this.pouch.getDocsOfType('type')
+		]).then((results) => {
+			this.origines = results[0];
+			this.origines.sort((a, b) => {
+				return a.pays + a.region < b.pays + b.region ? -1 : 1;
+			});
+			this.appellations = results[1];
+			this.appellations.sort((a, b) => {
+				return a.courte + a.longue < b.courte + b.longue ? -1 : 1;
+			});
+			this.types = results[2];
+			this.types.sort((a, b) => {
+				return a.nom < b.nom ? -1 : 1;
+			});
 			if (paramId) {
 				this.pouch.getDoc(paramId).then((vin) => {
 					this.originalName = vin.nom;
@@ -208,31 +223,6 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 					{ name: '', width: 0, heigth: 0, orientation: 1, fileType: '' }
 				);
 			}
-		});
-
-		this.pouch.getDocsOfType('origine').then((result) => {
-			this.origines = result;
-			this.origines.sort((a, b) => {
-				return a.pays + a.region < b.pays + b.region ? -1 : 1;
-			});
-			//debug('[VinPage constructor]origines is :' + JSON.stringify(this.origines));
-			this.pouch.getDocsOfType('appellation').then((result) => {
-				this.appellations = result;
-				this.appellations.sort((a, b) => {
-					return a.courte + a.longue < b.courte + b.longue ? -1 : 1;
-				});
-				//debug('[VinPage constructor]appellations is :' + JSON.stringify(this.appellations));
-				this.pouch.getDocsOfType('type').then((result) => {
-					this.types = result;
-					this.types.sort((a, b) => {
-						return a.nom < b.nom ? -1 : 1;
-					});
-					//debug('[VinPage constructor]types is :' + JSON.stringify(this.types));
-					window.setTimeout(() => {
-						this.obs.next('typeLoaded');
-					}, 200);
-				});
-			});
 		});
 
 		merge(this.vinForm.get('nom').valueChanges, this.vinForm.get('annee').valueChanges)
@@ -576,9 +566,13 @@ export class VinPage implements OnInit, OnDestroy, AfterViewInit {
 	}
 
 	adjustQuantityLeft(q: number) {
-		let ctrl = this.vinForm.get('nbreBouteillesReste');
-		let newQty = ctrl.value + q;
-		ctrl.patchValue(newQty);
+		let ctrlLeft = this.vinForm.get('nbreBouteillesReste');
+		let ctrlBought = this.vinForm.get('nbreBouteillesAchat');
+		let nbrBought = ctrlBought.value;
+		if (typeof ctrlBought.value === 'string') nbrBought = parseFloat(ctrlBought.value.replace(',', '.'));
+		let newQty = ctrlLeft.value + q;
+		if (typeof ctrlLeft.value === 'string') newQty = parseFloat(ctrlLeft.value.replace(',', '.')) + q;
+		ctrlLeft.patchValue(Math.max(Math.min(newQty, nbrBought), 0));
 	}
 
 	async presentLoading() {
