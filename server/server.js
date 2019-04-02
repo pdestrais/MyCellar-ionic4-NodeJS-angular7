@@ -5,11 +5,11 @@ var cfenv = require("cfenv");
 var bodyParser = require('body-parser');
 var axios = require('axios');
 var HTMLParser = require('fast-html-parser');
-var sign = require('jsonwebtoken');
+var jwt = require('jsonwebtoken');
 var crypto = require('crypto');
 var https = require('https');
 
-//const secret = 'RbBQqA6uF#msRF8s7h*?@=95HUm&DgMDd6zLFn4XzWQ6dtwXSJwBX#?gL2JWf!';
+const secret = 'RbBQqA6uF#msRF8s7h*?@=95HUm&DgMDd6zLFn4XzWQ6dtwXSJwBX#?gL2JWf!';
 const length = 128;
 const digest = 'sha256';
 const dbHost = 'd9b71086-9d4d-45ed-b6f8-42ffbfcbec84-bluemix.cloudant.com'
@@ -82,6 +82,15 @@ app.get("/api/GWS/:appellation/:wine/:year", function (request, response) {
 });
 
 // endpoint to 1. Create the user into the app-users db and 2. create a new database 'cellar${username}' into cloudant
+// request body () :
+// username :
+// password: 
+// email: 
+// Optionnal : 
+//    lastname: request.body.lastname || "",
+//    firstname: request.body.firstname || "",
+//    address: request.body.addres || "",
+//    phone:
 app.post("/api/register", function (request, response, next) {
   if (!request.body.hasOwnProperty('password')) {
     let err = new Error('No password');
@@ -294,6 +303,9 @@ app.post("/api/createUserInAppUsersTable", function (request, response, next) {
 });
 
 // login method
+// request body :
+// username :
+// password : 
 app.post('/api/login', function (request, response, next) {
 
   // get user credentials from the database
@@ -320,7 +332,7 @@ app.post('/api/login', function (request, response, next) {
       'Content-Length': Buffer.byteLength(JSON.stringify(selector))
     }
   };
-  console.log('/login selctor :', JSON.stringify(selector));
+  console.log('/login selector :', JSON.stringify(selector));
 
   var req = https.request(options, (res) => {
     //console.log('statusCode:', res.statusCode);
@@ -336,39 +348,46 @@ app.post('/api/login', function (request, response, next) {
       var parsed = {};
       try {
         parsed = JSON.parse(body);
-        // verify that the password stored in the database corresponds to the given password
-        var hash;
-        try {
-          hash = crypto.pbkdf2Sync(request.body.password, parsed.doc.salt, 10000, length, digest);
-        } catch (e) {
-          response.json({
-            error: e
-          });
-        }
-        // check if password is correct by recalculating hash on paswword and comparing with stored value
-        if (hash.toString('hex') === parsed.doc.hashedPassword) {
-          const token = sign({
-            'user': parsed.doc.username,
-            permissions: []
-          }, secret, {
-            expiresIn: '7d'
-          });
-          response.json({
-            'jwt': token
-          });
+        if (parsed.docs[0]) {
+          // verify that the password stored in the database corresponds to the given password
+          var hash;
+          try {
+            hash = crypto.pbkdf2Sync(request.body.password, parsed.docs[0].salt, 10000, length, digest);
+          } catch (e) {
+            response.json({
+              error: e
+            });
+          }
+          // check if password is correct by recalculating hash on paswword and comparing with stored value
+          if (hash.toString('hex') === parsed.docs[0].password) {
+            console.log("password is correct");
+            const token = jwt.sign({
+              'user': parsed.docs[0].username,
+              permissions: []
+            }, secret, {
+              expiresIn: '30d'
+            });
+            response.json({
+              'jwt': token
+            });
 
+          } else {
+            response.json({
+              message: 'Wrong password'
+            });
+          }
         } else {
           response.json({
-            message: 'Wrong password'
-          });
+            message: "username doesn't exist"
+          })
         }
       } catch (e) {
         parsed = {};
         console.log("error parsing result");
       }
-      response.json({
-        doc: parsed
-      });
+      //response.json({
+      //  doc: parsed
+      //});
     });
   });
 
