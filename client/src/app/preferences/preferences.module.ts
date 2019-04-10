@@ -6,7 +6,7 @@ import { Routes, RouterModule } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 import { TranslateModule } from '@ngx-translate/core';
 
-import { PreferencesPage, SupportPage } from './preferences.page';
+import { PreferencesPage /*, SupportPage*/ } from './preferences.page';
 
 const routes: Routes = [
 	{
@@ -17,7 +17,9 @@ const routes: Routes = [
 
 @NgModule({
 	imports: [ CommonModule, FormsModule, IonicModule, TranslateModule, RouterModule.forChild(routes) ],
-	entryComponents: [ SupportPage ],
-	declarations: [ PreferencesPage, SupportPage ]
+	entryComponents: [
+		/*SupportPage*/
+	],
+	declarations: [ PreferencesPage /*, SupportPage */ ]
 })
 export class PreferencesPageModule {}

@@ -9,7 +9,9 @@
     "report": "Rapport/Recherche",
     "stats": "Statistiques",
     "search": "Recherche",
-    "about": "A propos"
+    "about": "A propos",
+    "logout": "Déconnection",
+    "register": "Enregistrer utilisateur"
   },
   "config": {
     "dbServerURL": "URL server DB distant",
@@ -134,6 +136,21 @@
     "required": "est requis",
     "isDeleted": "est effacé",
     "isNotDeleted": "n'est pas effacé"
+  },
+  "login": {
+    "failed": "La connection a échoué",
+    "BadPassword": "Mauvais mot de passe",
+    "NoUsername": "Mauvais nom d'utilisateur"
+  },
+  "register": {
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "userName": "Nom d'utilisateur",
+    "email": "Adresse e-mail",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer mot de passe",
+    "phoneNumber": "n° de téléphone",
+    "address": "Adresse"
   },
   "english": "Anglais",
   "french": "Français",

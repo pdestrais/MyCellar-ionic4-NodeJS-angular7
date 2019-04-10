@@ -14,15 +14,11 @@ const debug = Debugger('app:preferences');
 })
 export class PreferencesPage implements OnInit {
 	public language: string = 'en';
+	/* Obsolete
 	public remoteDBURL: string = '';
 	public loading = false;
-	public valid: boolean = false;
+	public valid: boolean = false; */
 	public supportedLanguages: Map<string, string> = new Map([ [ 'fr', 'français' ], [ 'en', 'english' ] ]);
-	/* [
-		{ name: 'french', locale: 'fr-FR' },
-		{ name: 'english', locale: 'en-US' }
-	];
- */
 	constructor(
 		private location: Location,
 		private dataService: PouchdbService,
@@ -33,6 +29,7 @@ export class PreferencesPage implements OnInit {
 		private translate: TranslateService
 	) {}
 
+	/* Obsolete 	
 	async confirmSync(header, message) {
 		const alert = await this.alertCtrl.create({
 			header: header,
@@ -48,10 +45,10 @@ export class PreferencesPage implements OnInit {
 		});
 		await alert.present();
 	}
-
+ */
 	ngOnInit() {
 		debug('[ngOnInit]');
-		this.remoteDBURL = window.localStorage.getItem('myCellar.remoteDBURL');
+		/* Obsolete 			this.remoteDBURL = window.localStorage.getItem('myCellar.remoteDBURL');
 		this.checkURLValidity();
 		this.dataService.dbEvents$.subscribe((event) => {
 			if (event.eventType == 'dbReplicationCompleted' || event.eventType == 'dbSynchronized') {
@@ -70,7 +67,7 @@ export class PreferencesPage implements OnInit {
 					this.translate.instant('config.syncKOMessage', { errorMessage: JSON.stringify(event.error) })
 				);
 			}
-		});
+		}); */
 		this.zone.run(() => (this.language = window.localStorage.getItem('myCellar.language')));
 	}
 
@@ -78,7 +75,7 @@ export class PreferencesPage implements OnInit {
 		this.location.back();
 	}
 
-	checkURLValidity() {
+	/* Obsolete 		checkURLValidity() {
 		let urlRegExp = new RegExp(/^(https?:\/\/)?([\da-z\.-]+)\:([\da-z\.-]+)\@([\da-z\.-]+)\/([\da-z\.-]+)$/);
 		//([a-z\.]{2,6})([\/\w \.-]*)*\/?$/);
 		if (this.remoteDBURL) this.valid = urlRegExp.test(this.remoteDBURL);
@@ -99,7 +96,7 @@ export class PreferencesPage implements OnInit {
 		this.dataService.remote = this.remoteDBURL;
 		window.localStorage.setItem('myCellar.remoteDBURL', this.remoteDBURL);
 		this.dataService.replicateRemoteToLocal();
-	}
+	} */
 
 	languageChange(val: any) {
 		this.language = val.detail.value;
@@ -108,17 +105,17 @@ export class PreferencesPage implements OnInit {
 		window.localStorage.setItem('myCellar.language', this.language);
 	}
 
-	async showSupportText() {
+	/* Obsolete 		async showSupportText() {
 		const modal = await this.modalCtrl.create({
 			component: SupportPage,
 			backdropDismiss: true,
 			showBackdrop: true
 		});
 		return await modal.present();
-	}
+	} */
 }
 
-@Component({
+/* Obsolete 	@Component({
 	template: `
 			<ion-card>
 				<ion-card-content>
@@ -138,5 +135,5 @@ export class SupportPage {
 
 	dismiss() {
 		this.modalCtrl.dismiss();
-	}
-}
+	} 
+}*/

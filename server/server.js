@@ -15,6 +15,9 @@ const digest = 'sha256';
 const dbHost = 'd9b71086-9d4d-45ed-b6f8-42ffbfcbec84-bluemix.cloudant.com'
 const dbHostServiceUsername = "d9b71086-9d4d-45ed-b6f8-42ffbfcbec84-bluemix";
 const dbHostServicePassword = "eadc2fb095f724f11fbb3c523694d1bef8b8e09a8d88d8c15891d37c13eb90ec";
+const gmail = '';
+const gmailClientID = '622637269610-k895d710paiuk5oiu9rc2bppakb0sm4h.apps.googleusercontent.com';
+const gmailClientPassword = 'LXU_TzSbDhgG_1uA-19OODMm';
 
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({
@@ -89,8 +92,8 @@ app.get("/api/GWS/:appellation/:wine/:year", function (request, response) {
 // Optionnal : 
 //    lastname: request.body.lastname || "",
 //    firstname: request.body.firstname || "",
-//    address: request.body.addres || "",
-//    phone:
+//    address: request.body.address || "",
+//    phone: request.body.phone || ""
 app.post("/api/register", function (request, response, next) {
   if (!request.body.hasOwnProperty('password')) {
     let err = new Error('No password');
@@ -156,7 +159,10 @@ app.post("/api/register", function (request, response, next) {
                 }
 
               }).then(res => {
-                response.send("User " + request.body.username + " registered");
+                response.send({
+                  message: "User " + request.body.username + " registered",
+                  tranlateKey: "registrationOK"
+                });
               }).catch(error => {
                 if (error.response) {
                   // The request was made and the server responded with a status code
@@ -222,6 +228,65 @@ app.post("/api/register", function (request, response, next) {
     });
 });
 
+// endpoint to 1. Create the user into the app-users db and 2. create a new database 'cellar${username}' into cloudant
+// request body () :
+// username :
+// password: 
+// email: 
+// Optionnal : 
+//    lastname: request.body.lastname || "",
+//    firstname: request.body.firstname || "",
+//    address: request.body.address || "",
+//    phone: request.body.phone || ""
+app.post("/api/registerViaMail", function (request, response, next) {
+  if (!request.body.hasOwnProperty('password')) {
+    let err = new Error('No password');
+    return next(err);
+  }
+  if (!request.body.hasOwnProperty('username')) {
+    let err = new Error('No user name');
+    return next(err);
+  }
+  if (!request.body.hasOwnProperty('email')) {
+    let err = new Error('No user email');
+    return next(err);
+  }
+
+  var send = require('gmail-send')({
+    //var send = require('../index.js')({
+    user: 'phbucks@gmail.com',
+    // user: credentials.user,                  // Your GMail account used to send emails
+    pass: 'id1478965',
+    // pass: credentials.pass,                  // Application-specific password
+    //to: 'user@gmail.com',
+    // to:   credentials.user,                  // Send to yourself
+    // you also may set array of recipients:
+    // [ 'user1@gmail.com', 'user2@gmail.com' ]
+    // from:    credentials.user,            // from: by default equals to user
+    // replyTo: credentials.user,            // replyTo: by default undefined
+    // bcc: 'some-user@mail.com',            // almost any option of `nodemailer` will be passed to it
+    subject: 'test subject',
+    text: 'gmail-send example 1', // Plain text
+    //html:    '<b>html text</b>'            // HTML
+  });
+
+  send({
+    to: 'philippe.destrais@gmail.com',
+    subject: 'Mycellar registration',
+    text: 'username: ' + request.body.username + '\npassword: ' + request.body.password + '\nemail: ' + request.body.email + '\n: ' + request.body.email + '\nfirst name: ' + request.body.firstName + '\nlast name: ' + request.body.lastName
+  }, function (err, res) {
+    if (err != null) {
+      console.log('gmail send message call error returned')
+      response.status(500).send(err)
+    } else {
+      console.log("gmail send message call returned without error");
+      response.send({
+        result: 'OK'
+      })
+    }
+    console.log('send() callback returned: err:', err, '; res:', res);
+  });
+});
 
 /* Endpoint to fetch data from Global WIne Score web site. */
 app.post("/api/createUserInAppUsersTable", function (request, response, next) {
@@ -348,37 +413,40 @@ app.post('/api/login', function (request, response, next) {
       var parsed = {};
       try {
         parsed = JSON.parse(body);
-        if (parsed.docs[0]) {
+        var user = parsed.docs[0];
+        if (user) {
           // verify that the password stored in the database corresponds to the given password
           var hash;
           try {
-            hash = crypto.pbkdf2Sync(request.body.password, parsed.docs[0].salt, 10000, length, digest);
+            hash = crypto.pbkdf2Sync(request.body.password, user.salt, 10000, length, digest);
           } catch (e) {
             response.json({
               error: e
             });
           }
-          // check if password is correct by recalculating hash on paswword and comparing with stored value
-          if (hash.toString('hex') === parsed.docs[0].password) {
+          // check if password is correct by recalculating hash on password and comparing with stored value
+          if (hash.toString('hex') === user.password) {
             console.log("password is correct");
             const token = jwt.sign({
-              'user': parsed.docs[0].username,
+              'user': user.username,
               permissions: []
             }, secret, {
               expiresIn: '30d'
             });
-            response.json({
-              'jwt': token
-            });
+            user.token = token;
+            delete user.salt;
+            response.json(user);
 
           } else {
             response.json({
-              message: 'Wrong password'
+              message: 'Wrong password',
+              translateKey: 'BadPassword'
             });
           }
         } else {
           response.json({
-            message: "username doesn't exist"
+            message: "username doesn't exist",
+            translateKey: 'NoUsername'
           })
         }
       } catch (e) {

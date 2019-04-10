@@ -1,3 +1,4 @@
+import { PouchdbService } from './services/pouchdb.service';
 import { Component } from '@angular/core';
 
 import { Platform, MenuController } from '@ionic/angular';
@@ -10,6 +11,12 @@ import { timeout } from 'q';
 import { SideMenuSettings } from './multi-level-side-menu/models/side-menu-settings';
 import { SideMenuOption } from './multi-level-side-menu/models/side-menu-option';
 import { MultiLevelSideMenuComponent } from './multi-level-side-menu/multi-level-side-menu.component';
+
+import { AuthenticationService } from './services/auth.service';
+import { UserModel } from './models/cellar.model';
+
+import * as Debugger from 'debug';
+const debug = Debugger('app:root');
 
 @Component({
 	selector: 'app-root',
@@ -28,6 +35,7 @@ export class AppComponent {
 		showSelectedOption: true,
 		selectedOptionClass: 'active-side-menu-option'
 	};
+	private currentUser: UserModel;
 
 	constructor(
 		private platform: Platform,
@@ -35,9 +43,18 @@ export class AppComponent {
 		private statusBar: StatusBar,
 		private translate: TranslateService,
 		private router: Router,
-		private menuCtrl: MenuController
+		private menuCtrl: MenuController,
+		private authenticationService: AuthenticationService,
+		private dataService: PouchdbService
 	) {
 		this.initializeApp();
+		this.authenticationService.currentUser.subscribe((x) => {
+			this.currentUser = x;
+			if (x == null) {
+				debug('[login / logout subscriber]user just logged out');
+				this.router.navigate([ '/login' ]);
+			}
+		});
 	}
 
 	initializeApp() {
@@ -123,12 +140,24 @@ export class AppComponent {
 				displayText: this.translate.instant('page.about'),
 				route: [ '/about' ],
 				iconSrc: './assets/imgs/about.svg'
+			},
+			{
+				displayText: this.translate.instant('page.logout') + ' (' + this.currentUser.username + ')',
+				custom: 'logout',
+				iconSrc: './assets/imgs/logout.svg'
 			}
 		];
+		if (this.currentUser && this.currentUser != null && this.currentUser.admin)
+			this.options.splice(this.options.length - 2, 0, {
+				displayText: this.translate.instant('page.register'),
+				route: [ '/register' ],
+				iconSrc: './assets/imgs/sign-in.svg'
+			});
 	}
 
 	public onOptionSelected(option: SideMenuOption): void {
-		this.menuCtrl.close().then((result) => this.router.navigate(option.route));
+		if (option.custom == 'logout') this.authenticationService.logout();
+		else this.menuCtrl.close().then((result) => this.router.navigate(option.route));
 
 		/* 		this.menuCtrl.close().then(() => {
 			if (option.custom && option.custom.isLogin) {

@@ -83,3 +83,14 @@ export class CoteModel {
 		this.score = score;
 	}
 }
+
+export class UserModel {
+	username: string;
+	password: string;
+	firstName: string;
+	lastName: string;
+	token: string;
+	email: string;
+	address: string;
+	admin: boolean;
+}

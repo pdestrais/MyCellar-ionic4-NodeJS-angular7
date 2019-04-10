@@ -1,5 +1,5 @@
 <ion-app>
-  <ion-split-pane>
+  <ion-split-pane *ngIf="currentUser">
     <ion-menu>
       <ion-header>
         <ion-toolbar color="medium">
@@ -7,25 +7,11 @@
         </ion-toolbar>
       </ion-header>
       <ion-content>
-        <!--         <ion-list>
-          <ion-menu-toggle auto-hide="false">
-            <ion-item *ngFor="let p of appMenuItems" [routerDirection]="'forward'" [routerLink]="[p.url]" lines="full">
-              <ion-icon *ngIf="p.icon" slot="start" [name]="p.icon"></ion-icon>
-              <ion-icon *ngIf="p.iconUrl" slot="start" src={{p.iconUrl}}></ion-icon>
-              <ion-label>
-                {{p.title}}
-              </ion-label>
-            </ion-item>
-            <ion-item lines="full">
-              <ion-icon slot="start" name="close-circle"></ion-icon>
-              test
-            </ion-item>
-          </ion-menu-toggle>
-        </ion-list>
- -->
-        <app-multi-level-side-menu [settings]="sideMenuSettings" [options]="options" (change)="onOptionSelected($event)"></app-multi-level-side-menu>
+        <app-multi-level-side-menu [settings]="sideMenuSettings" [options]="options"
+          (change)="onOptionSelected($event)"></app-multi-level-side-menu>
       </ion-content>
     </ion-menu>
     <ion-router-outlet main></ion-router-outlet>
   </ion-split-pane>
+  <ion-router-outlet *ngIf="!currentUser" main></ion-router-outlet>
 </ion-app>

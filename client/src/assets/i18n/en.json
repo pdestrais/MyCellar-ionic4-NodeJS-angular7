@@ -9,7 +9,9 @@
     "report": "Report / Search",
     "stats": "Statistics",
     "search": "Search",
-    "about": "About"
+    "about": "About",
+    "logout": "Logout",
+    "register": "Register user"
   },
   "config": {
     "dbServerURL": "DB server URL",
@@ -135,6 +137,21 @@
     "isDeleted": "is deleted",
     "isNotDeleted": "is not deleted",
     "newAppInstance": "You're just starting using the application. Languages preferences are not set, therefore english is used. To choose your language, go to configuration."
+  },
+  "login": {
+    "failed": "Login failed",
+    "BadPassword": "Wrong password",
+    "NoUsername": "Wrong user name"
+  },
+  "register": {
+    "firstName": "First name",
+    "lastName": "Last name",
+    "userName": "User name",
+    "email": "email address",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "phoneNumber": "phone number",
+    "address": "Adress"
   },
   "english": "English",
   "french": "French",
