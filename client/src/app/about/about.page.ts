@@ -6,7 +6,13 @@ import { Component, OnInit } from '@angular/core';
 	styleUrls: [ './about.page.scss' ]
 })
 export class AboutPage implements OnInit {
-	public appInfo: any = { name: 'MyCellar', version: '2.3_e', author: 'Philippe Destrais', ionic: '4', angular: '7' };
+	public appInfo: any = {
+		name: 'MyCellar',
+		version: '2.3_e_multiappbranch',
+		author: 'Philippe Destrais',
+		ionic: '4',
+		angular: '7'
+	};
 
 	constructor() {}
 

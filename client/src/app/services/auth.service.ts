@@ -6,6 +6,9 @@ import { map } from 'rxjs/operators';
 import { UserModel } from '../models/cellar.model';
 
 import * as jwt_decode from 'jwt-decode';
+import { environment } from '../../environments/environment';
+
+const APIEndpoint = environment.APIEndpoint;
 
 @Injectable({ providedIn: 'root' })
 export class AuthenticationService {
@@ -22,9 +25,9 @@ export class AuthenticationService {
 	}
 
 	login(username: string, password: string) {
-		// let url = window.location.origin + '/api/login';
-		// for dev purposes
-		let url = 'http://localhost:5001' + '/api/login';
+		let url: string = '';
+		if (environment.production) url = window.location.origin + '/api/login';
+		else url = 'http://localhost:5001' + '/api/login'; // for dev purposes
 
 		return this.http.post<any>(url, { username, password }).pipe(
 			map((user) => {
@@ -67,9 +70,12 @@ export class AuthenticationService {
 	}
 
 	register(user: UserModel) {
-		let url;
-		if (this.currentUserValue && this.currentUserValue.admin) url = 'http://localhost:5001' + '/api/register';
-		else url = 'http://localhost:5001' + '/api/registerViaMail';
+		let url: string = '';
+		if (environment.production) url = window.location.origin;
+		else url = 'http://localhost:5001'; // for dev purposes
+
+		if (this.currentUserValue && this.currentUserValue.admin) url = url + '/api/register';
+		else url = url + '/api/registerViaMail';
 		//		if (this.currentUserValue.username == 'pdestrais') url = window.location.origin + '/api/register';
 		//		else url = window.location.origin + '/api/registerViaMail';
 		return this.http.post<any>(url, user).pipe(
