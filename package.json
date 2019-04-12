@@ -9,8 +9,8 @@
   },
   "scripts": {
     "start": "node server/server.js",
-    "startdev": "node --inspect src/server.js",
-    "build": "npm install -g @angular/cli && cd client && npm install && npm run buildProd"
+    "startdev": "node --inspect src/server.js" //,
+    //"build": "yarn install -g @angular/cli && cd client && npm install && npm run buildProd"
   },
   "repository": {
     "type": "git",

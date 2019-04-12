@@ -22,13 +22,14 @@ pwd
 
 # installing ng cli
 echo " -----> Installing ng cli."
-npm install -g @angular/cli
+yarn global add @angular/cli
+yarn install
 
 # Run build of client code
 echo " -----> Run build of client code."
 
 cd ./client
-npm run build --prod
+npm run buildProd
 
 # Dump out the contents of the current working directory.
 
