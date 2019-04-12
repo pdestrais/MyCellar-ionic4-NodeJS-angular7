@@ -20,6 +20,10 @@ echo " -----> Current working directory."
 
 pwd
 
+# installing ng cli
+echo " -----> Installing ng cli."
+npm install -g @angular/cli
+
 # Run build of client code
 echo " -----> Run build of client code."
 
