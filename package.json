@@ -9,7 +9,8 @@
   },
   "scripts": {
     "start": "node server/server.js",
-    "startdev": "node --inspect src/server.js"
+    "startdev": "node --inspect src/server.js",
+    "build": "cd client && npm run build --prod"
   },
   "repository": {
     "type": "git",

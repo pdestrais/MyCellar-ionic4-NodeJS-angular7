@@ -32,7 +32,7 @@ To test with NodeJS, go to root directory and start nodeJS with
 
 - First, build the application for the 'client' directory. For the web, PWA or mobile targets :
 
-     ionic build --prod or npm run buildProd
+          ionic build --prod or npm run buildProd
 
      For the Electron target :
 
