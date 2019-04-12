@@ -28,7 +28,7 @@ npm -g install @angular/cli
 echo " -----> installing client node modules."
 
 cd ./client
-npm install
+yarn install
 
 echo "-----> checking what angular modules have been loaded."
 ls node_modules/@angular*
