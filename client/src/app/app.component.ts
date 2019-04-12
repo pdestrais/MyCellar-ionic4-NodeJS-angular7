@@ -37,7 +37,7 @@ export class AppComponent {
 		showSelectedOption: true,
 		selectedOptionClass: 'active-side-menu-option'
 	};
-	private currentUser: UserModel;
+	public currentUser: UserModel;
 
 	constructor(
 		private platform: Platform,

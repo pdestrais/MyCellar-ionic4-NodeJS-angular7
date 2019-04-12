@@ -10,7 +10,7 @@
   "scripts": {
     "start": "node server/server.js",
     "startdev": "node --inspect src/server.js",
-    "build": "cd client && npm run build --prod"
+    "build": "cd client && npm run buildProd"
   },
   "repository": {
     "type": "git",
@@ -27,6 +27,6 @@
     "gmail-send": "^1.2.14",
     "jsonwebtoken": "^8.5.0"
   },
-  "author": "IBM Corp",
+  "author": "Philippe Destrais",
   "license": "Apache-2.0"
 }
