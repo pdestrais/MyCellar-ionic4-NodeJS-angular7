@@ -21,8 +21,9 @@ echo " -----> Current working directory."
 pwd
 
 # installing ng cli
-echo " -----> Installing ng cli."
+echo " -----> Installing ng cli && yarn."
 npm -g install @angular/cli
+npm install --global yarn
 
 # Run build of client code
 echo " -----> installing client node modules."
