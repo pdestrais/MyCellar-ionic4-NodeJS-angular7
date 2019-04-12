@@ -1,4 +1,0 @@
-#!/bin/bash -e
-echo "**** custom assemble running ****"
-cd client
-npm run build --prod
