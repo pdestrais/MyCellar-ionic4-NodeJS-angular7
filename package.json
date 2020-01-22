@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node server/server.js",
-    "startdev": "node --inspect src/server.js"
+    "startdev": "cp .env.dev .env && node --inspect server/server.js"
   },
   "repository": {
     "type": "git",
