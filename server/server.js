@@ -15,6 +15,37 @@ const length = 128;
 const digest = 'sha256';
 const gmail = '';
 
+let funB = () => {
+
+  console.log("Hello from funB!");
+  return ({ result: 'ok' })
+}
+
+let handleError = (caller, error, response) => {
+  if (error.response) {
+    // The request was made and the server responded with a status code that falls out of the range of 2xx
+    //console.log("[NodeJS - /register /create cloudant db]Something went wrong - data : " + error.response.data);
+    console.log("[NodeJS - /" + caller + " api]Something went wrong - status : " + error
+      .response.status);
+    //console.log("[NodeJS - /register /create cloudant db]Something went wrong - status : " + error.response.headers);
+    response.status(error.response.status)
+      .send(error.response.data)
+  } else if (error.request) {
+    // The request was made but no response was received `error.request` is an instance of XMLHttpRequest in the browser and an instance of
+    // http.ClientRequest in node.js
+    console.log("[NodeJS - /" + caller + " api]Something went wrong - request : " + error
+      .request);
+    response.status(500)
+      .send(error.request)
+  } else {
+    // Something happened in setting up the request that triggered an Error
+    console.log("[NodeJS - /" + caller + " api]Something went wrong - message : " + error
+      .message);
+    response.status(500)
+      .send(error.message)
+  }
+}
+
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({
   extended: true
@@ -60,42 +91,22 @@ app.get("/api/GWS/:appellation/:wine/:year", function(request, response) {
       console.log("[NodeJS - /api/GWS]response : " + JSON.stringify(GWScore));
       response.send(GWScore);
     })
-    .catch(err => {
-      if (err.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        console.log("[NodeJS - /api/GWS]Something went wrong - status : " + err.response
-          .status);
-        response.status(err.response.status)
-          .send(err.message);
-      } else if (err.request) {
-        // The request was made but no response was received
-        // `error.request` is an instance of XMLHttpRequest in the browser and an instance of
-        // http.ClientRequest in node.js
-        console.log("[NodeJS - /api/GWS]Something went wrong - no response from server : " +
-          err.request);
-        response.status(500)
-          .send(err.message);
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        console.log("[NodeJS - /api/GWS]Something went wrong in the NodeJs proxy: " + err
-          .message);
-        response.status(500)
-          .send(err.message);
-      }
-    });
+    .catch(error => handleError("GWS", error, response));
 });
 
 /* Private endpoint to create user requests (registration or password reset) in user management table. 
     Request body :
     - type(mandatory): either 'Registration' or 'passwordReset'
-    - username (mandatory)
-    - email
-    - optional :
-      - firstname
-      - lastname
-      - phone 
-      - address
+    One Of
+      - username (mandatory)
+      - email
+      - optional :
+        - firstname
+        - lastname
+        - phone 
+        - address
+    
+      - tempPwd (mandatory)
 */
 app.post("/api/createUserMngmtRequest", function(request, response, next) {
   if (!request.body.hasOwnProperty('type') || (request.body.type != 'registration' && request
@@ -103,8 +114,11 @@ app.post("/api/createUserMngmtRequest", function(request, response, next) {
     return response.status(400)
       .send({
         error: {
-          type: 'wrong request parameters',
-          title: 'No or invalid type'
+          code: 'NoOrInvalidType',
+          type: 'technical',
+          subtype: 'wrong request parameters',
+          resource: '/api/createUserMngmtRequest',
+          message: 'No or invalid type'
         }
       });
   }
@@ -113,8 +127,11 @@ app.post("/api/createUserMngmtRequest", function(request, response, next) {
     return response.status(400)
       .send({
         error: {
-          type: 'missing request parameters',
-          title: 'No username'
+          code: 'NoUsername',
+          type: 'technical',
+          subtype: 'missing request parameters',
+          resource: '/api/createUserMngmtRequest',
+          message: 'No username'
         }
       });
   }
@@ -123,8 +140,11 @@ app.post("/api/createUserMngmtRequest", function(request, response, next) {
     return response.status(400)
       .send({
         error: {
-          type: 'missing request parameters',
-          title: 'No email'
+          code: 'NoEMail',
+          type: 'technical',
+          subtype: 'missing request parameters',
+          resource: '/api/createUserMngmtRequest',
+          message: 'No email'
         }
       });
   }
@@ -135,10 +155,6 @@ app.post("/api/createUserMngmtRequest", function(request, response, next) {
     type: request.body.type,
     userName: request.body.username,
     email: request.body.email,
-    lastName: request.body.lastname || "",
-    firstName: request.body.firstname || "",
-    address: request.body.addres || "",
-    phone: request.body.phone || "",
     requestDate: new Date()
       .toISOString
   };
@@ -157,47 +173,9 @@ app.post("/api/createUserMngmtRequest", function(request, response, next) {
       data: reqData
     })
     .then(res => response.send({
-      token: res.data.id
+      requestID: res.data.id
     }))
-    .catch(err => {
-      if (err.response) {
-        // The request was made and the server responded with a status code that falls out of the range of 2xx
-        console.log("[NodeJS - api/createUserMngmtRequest]Something went wrong - status : " +
-          err.response.status);
-        response.status(err.response.status)
-          .send({
-            error: {
-              type: 'server request error',
-              title: err.message
-            }
-          });
-      } else if (err.request) {
-        // The request was made but no response was received `error.request` is an instance of XMLHttpRequest in the browser and an instance of
-        // http.ClientRequest in node.js
-        console.log(
-          "[NodeJS - api/createUserMngmtRequest]Something went wrong - no response from server : " +
-          err.request);
-        response.status(500)
-          .send({
-            error: {
-              type: 'server request error',
-              title: err.message
-            }
-          });
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        console.log(
-          "[NodeJS - api/createUserMngmtRequest]Something went wrong in the NodeJs proxy: " +
-          err.message);
-        response.status(500)
-          .send({
-            error: {
-              type: 'server request error',
-              title: err.message
-            }
-          });
-      }
-    });
+    .catch(error => handleError("createUserMngmtRequest", error, response));
 });
 
 // Private endpoint to send a mail to the requestor. 
@@ -211,8 +189,11 @@ app.post("/api/sendEMail", function(request, response, next) {
     return response.status(400)
       .send({
         error: {
-          type: 'missing request parameters',
-          title: 'No subject'
+          code: 'NoSubject',
+          type: 'technical',
+          subtype: 'Missing request parameters',
+          resource: '/api/sendEmail',
+          message: 'No Subject to send mail'
         }
       });
   }
@@ -220,8 +201,11 @@ app.post("/api/sendEMail", function(request, response, next) {
     return response.status(400)
       .send({
         error: {
-          type: 'missing request parameters',
-          title: 'No message'
+          code: 'NoMessage',
+          type: 'technical',
+          subtype: 'missing request parameters',
+          resource: '/api/createUserMngmtRequest',
+          message: 'No message'
         }
       });
   }
@@ -229,8 +213,11 @@ app.post("/api/sendEMail", function(request, response, next) {
     return response.status(400)
       .send({
         error: {
-          type: 'missing request parameters',
-          title: 'No user email'
+          code: 'NoEMailAddress',
+          type: 'technical',
+          subtype: 'missing request parameters',
+          resource: '/api/createUserMngmtRequest',
+          message: 'No email address'
         }
       });
   }
@@ -282,11 +269,7 @@ app.post("/api/sendEMail", function(request, response, next) {
     - (mandatory) either 
       - password 
       or any of :
-      - email
-      - firstname
-      - lastname
-      - phone
-      - address
+      - 
  */
 app.post("/api/upsertUserData", function(request, response, next) {
 
@@ -294,8 +277,11 @@ app.post("/api/upsertUserData", function(request, response, next) {
     return response.status(400)
       .send({
         error: {
-          type: 'missing request parameters',
-          title: 'No username'
+          code: 'NoUsername',
+          type: 'technical',
+          subtype: 'missing request parameters',
+          resource: '/api/upsertUserData',
+          message: 'No username'
         }
       });
   }
@@ -305,25 +291,40 @@ app.post("/api/upsertUserData", function(request, response, next) {
     return response.status(400)
       .send({
         error: {
-          type: 'wrong request parameters',
-          title: 'No or invalid action'
+          code: 'NoUsername',
+          type: 'technical',
+          subtype: 'wrong request parameters',
+          resource: '/api/upsertUserData',
+          message: 'No or invalid action'
         }
       });
   }
 
-  if (!request.body.hasOwnProperty('password') &&
-    !(request.body.hasOwnProperty('email') ||
-      request.body.hasOwnProperty('firstname') ||
-      request.body.hasOwnProperty('lastname') ||
-      request.body.hasOwnProperty('phone') ||
-      request.body.hasOwnProperty('address') ||
-      request.body.hasOwnProperty('state'))
-  ) {
+  // if action is "create" then we should receive username, email, password & state
+  if (!request.body.action == 'create' && (!request.body.hasOwnProperty('password') && !request.body.hasOwnProperty(
+      'username') && !request.body.hasOwnProperty('email') && !request.body.hasOwnProperty('state'))) {
     return response.status(400)
       .send({
         error: {
-          type: 'wrong request parameters',
-          title: 'No password or no other user data to update'
+          code: 'NoUsernameEMailPasswordInCreate',
+          type: 'technical',
+          subtype: 'wrong request parameters',
+          resource: '/api/upsertUserData',
+          message: 'You need a username, email, password & state to create a user'
+        }
+      });
+  }
+
+  // if action is "update" then we should at least receive a username
+  if (!request.body.action == 'update' && (!request.body.hasOwnProperty('username'))) {
+    return response.status(400)
+      .send({
+        error: {
+          code: 'NoUsernameInUpdate',
+          type: 'technical',
+          subtype: 'wrong request parameters',
+          resource: '/api/upsertUserData',
+          message: 'You need at least a username to update a user'
         }
       });
   }
@@ -342,7 +343,7 @@ app.post("/api/upsertUserData", function(request, response, next) {
   };
 
   axios({
-      url: 'https://' + process.env.dbHost + '/app-users/_find',
+      url: 'https://' + process.env.dbHost + '/app-users-test/_find',
       method: 'post',
       auth: {
         username: process.env.dbHostServiceUsername,
@@ -361,8 +362,11 @@ app.post("/api/upsertUserData", function(request, response, next) {
           return response.status(400)
             .send({
               error: {
-                type: 'data duplication',
-                title: 'Impossible to create because this username already exists'
+                code: 'UsernameAlReadyExistsInCreate',
+                type: 'technical',
+                subtype: 'data duplication',
+                resource: '/api/upsertUserData',
+                message: 'Impossible to create because this username already exists'
               }
             });
         } else {
@@ -372,18 +376,18 @@ app.post("/api/upsertUserData", function(request, response, next) {
             username: request.body.username,
             _id: res.data.docs[0]._id,
             _rev: res.data.docs[0]._rev,
+            salt: res.data.docs[0].salt,
             lastname: request.body.lastname || res.data.docs[0].lastname,
             firstname: request.body.firstname || res.data.docs[0].firstname,
             address: request.body.address || res.data.docs[0].address,
             email: request.body.email || res.data.docs[0].email,
             phone: request.body.phone || res.data.docs[0].phone,
             admin: false,
-            state: request.body.state || request.body.data.state
+            state: request.body.state || res.data.docs[0].state
           };
 
           if (request.body.hasOwnProperty('password')) {
             // If a new password is given, it overwrites the existing one
-            var test = crypto.randomBytes(128);
             const salt = crypto.randomBytes(128)
               .toString('base64');
             var hashedPw;
@@ -407,7 +411,7 @@ app.post("/api/upsertUserData", function(request, response, next) {
 
           console.log('/upsertUserData update reqData:', JSON.stringify(reqData));
           axios({
-              url: 'https://' + process.env.dbHost + '/app-users/' + res.data.docs[0]._id,
+              url: 'https://' + process.env.dbHost + '/app-users-test/' + res.data.docs[0]._id,
               method: 'PUT',
               auth: {
                 username: process.env.dbHostServiceUsername,
@@ -419,7 +423,9 @@ app.post("/api/upsertUserData", function(request, response, next) {
               },
               data: reqData
             })
-            .then(res => response.json(res.data))
+            .then(updateRes => {
+              response.json(reqData)
+            })
         }
 
       } else {
@@ -428,40 +434,39 @@ app.post("/api/upsertUserData", function(request, response, next) {
           var reqData = {
             app: "mycellar",
             username: request.body.username,
-            lastname: request.body.lastname || res.data.docs[0].lastname,
-            firstname: request.body.firstname || res.data.docs[0].firstname,
-            address: request.body.address || res.data.docs[0].address,
-            email: request.body.email || res.data.docs[0].email,
-            phone: request.body.phone || res.data.docs[0].phone,
+            lastname: request.body.lastname || "",
+            firstname: request.body.firstname || "",
+            address: request.body.address || "",
+            email: request.body.email || "",
+            phone: request.body.phone || "",
             admin: false,
-            state: request.body.state || request.body.data.state
+            state: request.body.state || ""
           };
-          if (request.body.hasOwnProperty('password')) {
-            // If password is transfered, it overwrites the existing one
-            // a new password is given
-            const salt = crypto.randomBytes(128)
-              .toString('base64');
-            var hashedPw;
-            try {
-              hashedPw = crypto.pbkdf2Sync(request.body.password, salt, 10000, length,
-                digest);
-            } catch (err) {
-              response.status(500)
-                .json({
-                  error: err
-                });
-            }
-            //store user credentials (user,password,salt and other required info) into the database
-            reqData.salt = salt;
-            reqData.password = hashedPw.toString('hex');
-          } else {
-            // If no password is given, this is just an regular update and only the changes passed attributes are updated
-            reqData.salt = res.data.docs[0].salt;
-            reqData.password = es.data.docs[0].password;
+
+          var newPwd = Math.random()
+            .toString(36)
+            .slice(-8);
+
+          const salt = crypto.randomBytes(128)
+            .toString('base64');
+
+          try {
+            hashedPw = crypto.pbkdf2Sync(request.body.password ? request.body.password : newPwd, salt, 10000,
+              length,
+              digest);
+          } catch (err) {
+            response.status(500)
+              .json({
+                error: err
+              });
           }
+          //store user credentials (user,password,salt and other required info) into the database
+          reqData.salt = salt;
+          reqData.password = hashedPw.toString('hex');
+
           console.log('/upsertUserData create reqData:', JSON.stringify(reqData));
           axios({
-              url: 'https://' + process.env.dbHost + '/app-users',
+              url: 'https://' + process.env.dbHost + '/app-users-test',
               method: 'POST',
               auth: {
                 username: process.env.dbHostServiceUsername,
@@ -473,42 +478,27 @@ app.post("/api/upsertUserData", function(request, response, next) {
               },
               data: reqData
             })
-            .then(res => response.json(res.data))
+            .then(createRes => {
+              reqData._id = createRes.id;
+              reqData._rev = createRes.rev;
+              response.json(reqData);
+            })
+            .catch(error => handleError("upsertUserData", error, response));
         } else {
           return response.status(401)
             .send({
               error: {
-                type: 'Missing data',
-                title: "User to update doesn't exist"
+                code: 'UsernameNotExistInUpdate',
+                type: 'technical',
+                subtype: 'missing data',
+                resource: '/api/upsertUserData',
+                message: "User to update doesn't exist"
               }
             });
         }
       }
     })
-    .catch(error => {
-      if (error.response) {
-        // The request was made and the server responded with a status code that falls out of the range of 2xx
-        //console.log("[NodeJS - /register /create cloudant db]Something went wrong - data : " + error.response.data);
-        console.log("[NodeJS - /upsertUserData api]Something went wrong - status : " + error
-          .response.status);
-        //console.log("[NodeJS - /register /create cloudant db]Something went wrong - status : " + error.response.headers);
-        response.status(error.response.status)
-          .send(error.message)
-      } else if (error.request) {
-        // The request was made but no response was received `error.request` is an instance of XMLHttpRequest in the browser and an instance of
-        // http.ClientRequest in node.js
-        console.log("[NodeJS - /upsertUserData api]Something went wrong - request : " + error
-          .request);
-        response.status(500)
-          .send(error.request)
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        console.log("[NodeJS - /upsertUserData api]Something went wrong - message : " + error
-          .message);
-        response.status(500)
-          .send(error.message)
-      }
-    });
+    .catch(error => handleError("upsertUserData", error, response));
 
 });
 
@@ -525,27 +515,20 @@ app.post("/api/upsertUserData", function(request, response, next) {
 //    address: request.body.address || "",
 //    phone: request.body.phone || ""
 app.post("/api/processSignupRequest", function(request, response, next) {
-  if (!request.body.hasOwnProperty('email')) {
+  if (!request.body.hasOwnProperty('email') || !request.body.hasOwnProperty('username')) {
     return response.status(400)
       .send({
         error: {
-          type: 'missing request parameters',
-          title: 'No email'
+          code: 'NoEmailOrUsername',
+          type: 'business',
+          subtype: 'missing request parameters',
+          resource: '/api/processSignupRequest',
+          message: 'No email or username'
         }
       });
   }
 
-  if (!request.body.hasOwnProperty('username')) {
-    return response.status(400)
-      .send({
-        error: {
-          type: 'missing request parameters',
-          title: 'No username'
-        }
-      });
-  }
-
-  // Check that user deosn't already exists before creating a new one
+  // Check that user doesn't already exists before creating a new one
   var selector = {
     "selector": {
       "$and": [{
@@ -559,7 +542,7 @@ app.post("/api/processSignupRequest", function(request, response, next) {
   };
 
   axios({
-      url: 'https://' + process.env.dbHost + '/app-users/_find',
+      url: 'https://' + process.env.dbHost + '/app-users-test/_find',
       method: 'post',
       auth: {
         username: process.env.dbHostServiceUsername,
@@ -574,84 +557,68 @@ app.post("/api/processSignupRequest", function(request, response, next) {
     .then(res => {
       if (res.data.docs.length != 0) {
         // username already exist
-        return response.status(400)
+        return response.status(409)
           .send({
             error: {
-              type: 'data duplication',
-              title: "username " + request.body.username + " already exists"
+              code: 'UsernameAlreadyExists',
+              type: 'business',
+              subtype: 'data duplication',
+              resource: '/api/processSignupRequest',
+              message: "username " + request.body.username + " already exists"
             }
           });
-
       } else {
-        axios({
-            url: 'https://' + process.env.dbHost + '/user-mngt-app/',
-            method: 'post',
-            auth: {
-              username: process.env.dbHostServiceUsername,
-              password: process.env.dbHostServicePassword
-            },
-            headers: {
-              'Content-Type': 'application/json',
-              'Content-Length': Buffer.byteLength(JSON.stringify(selector))
-            },
-            data: {
-              username: request.body.username,
-              email: request.body.email,
-              type: 'registration',
-              timestamp: new Date()
-                .toISOString()
-            }
-          })
-          .then(res => {
-            if (res.data) {
-              // if writing into user-mngt-app table succeeded => Send mail
-              axios({
-                  url: process.env.environment == 'dev' ? process.env.apiserver + ':' +
-                    port + '/api/sendEMail' : process.env.apiserver + 'api/sendEMail',
-                  method: 'POST',
-                  data: {
-                    to: request.body.email,
-                    subject: "Confirm your registration request",
-                    message: process.env.environment == 'dev' ?
-                      "Click on the following URL to complete your registration : http://localhost:5001/processSignupConfirmation/" +
-                      res.data.id :
-                      "Click on the following URL to complete your registration : https://localhost:5001/processSignupConfirmation/" +
-                      res.data.id
-                  }
-                })
-                .then(result => {
-                  response.send({
-                    message: "User " + request.body.username + " registered",
-                    tranlateKey: "registrationOK",
-                    registrationID: res.data.id
-                  });
-                })
-            }
-          })
+        // prepare create entry into user request table
+        var createUserReq = {
+          url: 'https://' + process.env.dbHost + '/user-mngt-app/',
+          method: 'post',
+          auth: {
+            username: process.env.dbHostServiceUsername,
+            password: process.env.dbHostServicePassword
+          },
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(JSON.stringify(selector))
+          },
+          data: {
+            username: request.body.username,
+            email: request.body.email,
+            type: 'registration',
+            timestamp: new Date()
+              .toISOString(),
+            app: 'mycellar'
+          }
+        }
+        // prepare sending mail
+        var sendMailReq = {
+          url: process.env.environment == 'dev' ? process.env.apiserver + ':' +
+            port + '/api/sendEMail' : process.env.apiserver + 'api/sendEMail',
+          method: 'POST',
+          data: {
+            to: request.body.email,
+            subject: "Confirm your registration request",
+            message: process.env.environment == 'dev' ?
+              "Click on the following URL to complete your registration : http://localhost:5001/processUserRequestConfirmation/" +
+              res.data.id :
+              "Click on the following URL to complete your registration : https://localhost:5001/processUserRequestConfirmation/" +
+              res.data.id
+          }
+        }
+        axios.all([axios(createUserReq), axios(sendMailReq)])
+          .then(axios.spread((createUserReqResponse, sendMailReqResponse) => {
+            console.log(JSON.stringify(createUserReqResponse.data), JSON.stringify(
+              sendMailReqResponse.data));
+            return response.status(200)
+              .send({
+                message: "User " + request.body.username + " registered",
+                translateKey: "registrationOK",
+                registrationID: createUserReqResponse.data.id
+              });
+          }))
+          .catch(error => handleError("processSignupRequest (combined)", error, response));
       }
     })
-    .catch(error => {
-      if (error.response) {
-        // The request was made and the server responded with a status code that falls out of the range of 2xx
-        console.log("[NodeJS - /processSignupRequest ]Something went wrong - status : " +
-          error.response.status);
-        response.status(error.response.status)
-          .send(error.message)
-      } else if (error.request) {
-        // The request was made but no response was received`error.request` is an instance of XMLHttpRequest in the browser and an instance of
-        // http.ClientRequest in node.js
-        console.log("[NodeJS - processSignupRequest]Something went wrong - request : " + error
-          .request);
-        response.status(500)
-          .send(error.request)
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        console.log("[NodeJS - processSignupRequest]Something went wrong - message : " + error
-          .message);
-        response.status(500)
-          .send(error.message)
-      }
-    });
+    .catch(error => handleError("processSignupRequest", error, response))
 });
 
 // endpoint to finalize the request for a new signup to the application 
@@ -661,7 +628,8 @@ app.post("/api/processSignupRequest", function(request, response, next) {
 //    3. create Wine Database corresponding to the chosen username
 //    4. send mail to user with newly generated password
 // request path contains the user request id :
-app.post("/api/processSignupConfirmation/:id", function(request, response, next) {
+// TODO change name into something more generic like : processRequestConfirmation
+app.post("/api/processUserRequestConfirmation/:id", function(request, response, next) {
 
   // Generate password
   var newPwd = Math.random()
@@ -683,83 +651,29 @@ app.post("/api/processSignupConfirmation/:id", function(request, response, next)
     })
     .then(res => {
       if (res.data) {
-        // verify that user with same username doesn't exist yet
-        // Check that user deosn't already exists before creating a new one
-        var selector = {
-          "selector": {
-            "$and": [{
-                "app": "mycellar"
-            },
-              {
-                "username": res.data.username
-            }
-          ]
-          }
-        };
+        if (res.data.type == 'registration') {
+          // if request is for new registration
 
-        axios({
-            url: 'https://' + process.env.dbHost + '/app-users/_find',
+          var upsertUserDataReq = {
+            url: process.env.environment == 'dev' ? process.env.apiserver + ':' +
+              port + '/api/upsertUserData' : process.env.apiserver + '/api/upsertUserData',
             method: 'post',
-            auth: {
-              username: process.env.dbHostServiceUsername,
-              password: process.env.dbHostServicePassword
-            },
-            headers: {
-              'Content-Type': 'application/json',
-              'Content-Length': Buffer.byteLength(JSON.stringify(selector))
-            },
-            data: selector
-          })
-          .then(result => {
-            if (result.data.docs.length != 0) {
-              return response.status(400)
-                .send({
-                  error: {
-                    type: 'duplicate data',
-                    title: 'username corresponding to user request already exist'
-                  }
-                });
-            } else {
-              // if not
-              // create user data
-              // First hash newly generated password with salt and store hashed value
-              const salt = crypto.randomBytes(128)
-                .toString('base64');
+            data: {
+              username: res.data.username,
+              action: "create",
+              password: newPwd,
+              lastname: res.data.lastname || "",
+              firstname: res.data.firstname || "",
+              address: res.data.address || "",
+              email: res.data.email || "",
+              phone: res.data.phone || "",
+              state: 'registrationDone',
+              app: 'mycellar'
+            }
+          }
 
-              var hashedPw;
-              try {
-                hashedPw = crypto.pbkdf2Sync(new, salt, 10000, length, digest);
-              } catch (err) {
-                response.status(500)
-                  .json({
-                    error: err
-                  });
-              }
-
-              var createUserDataReq = {
-                url: 'https://' + process.env.dbHost + '/app-users/',
-                method: 'post',
-                auth: {
-                  username: process.env.dbHostServiceUsername,
-                  password: process.env.dbHostServicePassword
-                },
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Content-Length': Buffer.byteLength(JSON.stringify(selector))
-                },
-                data: {
-                  username: res.data.username,
-                  password: hashedPw,
-                  salt: salt,
-                  lastname: res.data.lastname || "",
-                  firstname: res.data.firstname || "",
-                  address: res.data.addres || "",
-                  email: res.data.email || "",
-                  phone: res.data.phone || "",
-                  state: 'registrationDone',
-                  app: 'mycellar'
-                }
-              }
+          axios(upsertUserDataReq)
+            .then(upsertRes => {
               // create user table
               var createUserTableReq = {
                 url: 'https://' + process.env.dbHostServiceUsername + ":" + process.env
@@ -780,74 +694,96 @@ app.post("/api/processSignupConfirmation/:id", function(request, response, next)
                   to: res.data.email,
                   subject: "Registration confirmed",
                   message: process.env.environment == 'dev' ?
-                    "Your registration is confirmed. Please log on using the following credentials : " + res
-                    .data
-                    .username + "(username) - " + newPwd +
+                    "Your registration is confirmed. Please log on using the following credentials : " +
+                    upsertRes.username + "(username) - " + newPwd +
                     "(temporary password) on following web site: http://localhost:5001/ ." +
                     "You will be asked to immediately change your password." :
-                    "Your registration is confirmed. Please log on using the following credentials : " + res
-                    .data
-                    .username + "(username) - " + newPwd +
+                    "Your registration is confirmed. Please log on using the following credentials : " +
+                    upsertRes.username + "(username) - " + newPwd +
                     "(temporary password) on following web site: https://pdestrais-mycellar.eu-gb.mybluemix.net/ ." +
                     "You will be asked to immediately change your password."
                 }
               }
 
-              // TODO delete registration request in user-Mngmt table
-
-              axios.all([axios(createUserDataReq),
-              axios(createUserTableReq),
-              axios(sendMailReq)
-            ])
-                .then(axios.spread((firstResponse, secondResponse, thirdResponse) => {
+              axios.all([axios(createUserTableReq), axios(sendMailReq)])
+                .then(axios.spread((firstResponse, secondResponse) => {
                   console.log(JSON.stringify(firstResponse.data), JSON.stringify(
-                    secondResponse.data), JSON.stringify(thirdResponse.data));
+                    secondResponse.data));
                   return response.status(200)
                     .send({
                       message: "User " + res.data.username + " registration done",
-                      tranlateKey: "registrationDONE",
+                      translateKey: "registrationDONE",
                       password: newPwd
                     })
                 }))
-                .catch(error => console.log(
-                  "[NodeJS - /processSignupRequest ] combined http calls failed with error : " +
-                  error));
+                .catch(error => handleError("processUserRequestConfirmation (combined)", error, response));
+            })
+            .catch(error => handleError("processUserRequestConfirmation (combined)", error, response));
 
+        } else {
+          // request is for password reset
+          // Upsert user with newly generated password
+          var upsertUserDataReq = {
+            url: process.env.environment == 'dev' ? process.env.apiserver + ':' +
+              port + '/api/upsertUserData' : process.env.apiserver + '/api/upsertUserData',
+            method: 'post',
+            data: {
+              username: res.data.username,
+              action: 'update',
+              password: newPwd,
+              state: 'resetPasswordDone'
             }
-          });
+          }
+          // send mail
+          var sendMailReq = {
+            url: process.env.environment == 'dev' ? process.env.apiserver + ':' +
+              port + '/api/sendEMail' : process.env.apiserver + '/api/sendEMail',
+            method: 'POST',
+            data: {
+              to: res.data.email,
+              subject: "Password reset confirmed",
+              message: process.env.environment == 'dev' ?
+                "Your password reset is confirmed. Please log on using the following credentials : " + res
+                .data
+                .username + "(username) - " + newPwd +
+                "(temporary password) on following web site: http://localhost:5001/ ." +
+                "You will be asked to immediately change your password." :
+                "Your password reset is confirmed. Please log on using the following credentials : " + res
+                .data
+                .username + "(username) - " + newPwd +
+                "(temporary password) on following web site: https://pdestrais-mycellar.eu-gb.mybluemix.net/ ." +
+                "You will be asked to immediately change your password."
+            }
+          }
+          axios.all([axios(upsertUserDataReq), axios(sendMailReq)])
+            .then(axios.spread((firstResponse, secondResponse) => {
+              console.log(JSON.stringify(firstResponse.data), JSON.stringify(
+                secondResponse.data));
+              return response.status(200)
+                .send({
+                  message: "User " + res.data.username + " password reset done",
+                  translateKey: "passwordResetDONE",
+                  password: newPwd
+                })
+            }))
+            .catch(error => handleError("processUserRequestConfirmation (combined)", error, response));
+
+        }
       } else {
         return response.status(401)
           .send({
             error: {
-              type: 'No data found',
-              title: 'No registration request found'
+              code: 'NoRegistrationRequestFound',
+              type: 'business',
+              subtype: 'No data found',
+              resource: '/api/processUserRequestConfirmation',
+              message: 'No registration request found'
             }
           });
       }
 
     })
-    .catch(error => {
-      if (error.response) {
-        // The request was made and the server responded with a status code that falls out of the range of 2xx
-        console.log("[NodeJS - /processSignupRequest ]Something went wrong - status : " +
-          error.response.status);
-        response.status(error.response.status)
-          .send(error.message)
-      } else if (error.request) {
-        // The request was made but no response was received`error.request` is an instance of XMLHttpRequest in the browser and an instance of
-        // http.ClientRequest in node.js
-        console.log("[NodeJS - processSignupRequest]Something went wrong - request : " + error
-          .request);
-        response.status(500)
-          .send(error.request)
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        console.log("[NodeJS - processSignupRequest]Something went wrong - message : " + error
-          .message);
-        response.status(500)
-          .send(error.message)
-      }
-    });
+    .catch(error => handleError("processUserRequestConfirmation", error, response));
 });
 
 // login method
@@ -863,8 +799,11 @@ app.post('/api/login', function(request, response, next) {
     return response.status(400)
       .send({
         error: {
-          type: 'missing request parameters',
-          title: 'No username'
+          code: 'NoUsername',
+          type: 'business',
+          subtype: 'missing request parameters',
+          resource: '/api/login',
+          message: 'No username'
         }
       });
   }
@@ -873,8 +812,11 @@ app.post('/api/login', function(request, response, next) {
     return response.status(400)
       .send({
         error: {
-          type: 'missing request parameters',
-          title: 'No password'
+          code: 'NoPassword',
+          type: 'business',
+          subtype: 'missing request parameters',
+          resource: '/api/login',
+          message: 'No password'
         }
       });
   }
@@ -893,7 +835,7 @@ app.post('/api/login', function(request, response, next) {
   };
 
   axios({
-      url: 'https://' + process.env.dbHost + '/app-users/_find',
+      url: 'https://' + process.env.dbHost + '/app-users-test/_find',
       method: 'post',
       auth: {
         username: process.env.dbHostServiceUsername,
@@ -907,39 +849,48 @@ app.post('/api/login', function(request, response, next) {
     })
     .then(result => {
       if (result.data.docs.length == 0) {
-        return response.status(401)
+        return response.status(404)
           .send({
             error: {
-              type: 'user not found',
-              title: "username doesn't exist"
+              code: 'UsernameNotExist',
+              type: 'business',
+              subtype: 'user not found',
+              resource: '/api/login',
+              message: "username doesn't exist"
             }
           });
       } else {
-        // username exist, compare password with stored hashed value
+        // username exist, check if his state is not 'resetPasswordPending' 
         user = result.data.docs[0];
-        // verify that the password stored in the database corresponds to the given password
-        var hash;
-        try {
-          hash = crypto.pbkdf2Sync(request.body.password, user.salt, 10000, length,
-            digest);
-        } catch (e) {
-          return response.status(500)
+        if (user.state == 'resetPasswordPending') {
+          return response.status(400)
             .send({
-              error: e
+              error: {
+                code: 'ResetPasswordOnGoing',
+                type: 'business',
+                subtype: 'reset password pending',
+                resource: '/api/login',
+                message: "A password reset has been requested for this user.  Please complete reset process first."
+              }
             });
-        }
-        // check if password is correct by recalculating hash on password and comparing with stored value
-        if (hash.toString('hex') === user.password) {
-          console.log("password is correct");
-          if (user.state == 'resetPasswordPending') {
-            return response.status(400)
+        } else {
+          //compare password with stored hashed value
+          user = result.data.docs[0];
+          // verify that the password stored in the database corresponds to the given password
+          var hash;
+          try {
+            hash = crypto.pbkdf2Sync(request.body.password, user.salt, 10000, length,
+              digest);
+          } catch (e) {
+            return response.status(500)
               .send({
-                error: {
-                  type: 'reset password pending',
-                  title: "A password reset has been requested for this user.  Please complete reset process first."
-                }
+                error: e
               });
-          } else {
+          }
+          // check if password is correct by recalculating hash on password and comparing with stored value
+          if (hash.toString('hex') === user.password) {
+            console.log("password is correct");
+
             const token = jwt.sign({
               'user': user.username,
               permissions: []
@@ -963,41 +914,155 @@ app.post('/api/login', function(request, response, next) {
                   user: user
                 });
             }
+          } else {
+            response.status(401)
+              .send({
+                error: {
+                  code: 'BadPassword',
+                  type: 'business',
+                  subtype: 'wrong password',
+                  resource: '/api/login',
+                  message: "Wrong password"
+                }
+              });
           }
-        } else {
-          response.status(400)
-            .send({
-              error: {
-                type: 'BadPassword',
-                title: 'Wrong password'
-              }
-            });
         }
-
       }
     })
-    .catch(error => {
-      if (error.response) {
-        // The request was made and the server responded with a status code that falls out of the range of 2xx
-        console.log("[NodeJS - /processSignupRequest ]Something went wrong - status : " +
-          error.response.status);
-        response.status(error.response.status)
-          .send(error.message)
-      } else if (error.request) {
-        // The request was made but no response was received`error.request` is an instance of XMLHttpRequest in the browser and an instance of
-        // http.ClientRequest in node.js
-        console.log("[NodeJS - processSignupRequest]Something went wrong - request : " + error
-          .request);
-        response.status(500)
-          .send(error.request)
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        console.log("[NodeJS - processSignupRequest]Something went wrong - message : " + error
-          .message);
-        response.status(500)
-          .send(error.message)
+    .catch(error => handleError("login", error, response));
+});
+
+// endpoint to receive request for a password reset request 
+// It will
+//    1. create an entry into the registration table
+//    2. Send registration confirmation on email address
+//    3. Update user data status to 'resetPasswordPending'
+// request body () :
+// - username (mandatory)
+app.post("/api/resetPassword", function(request, response, next) {
+
+  if (!request.body.hasOwnProperty('username')) {
+    return response.status(400)
+      .send({
+        error: {
+          code: 'NoUsername',
+          type: 'business',
+          subtype: 'missing request parameters',
+          resource: '/api/resetPassword',
+          message: "No username"
+        }
+      });
+  }
+
+  // Check that user exists before registering the request to reset his password
+  var query = {
+    "selector": {
+      "$and": [{
+          "app": "mycellar"
+        },
+        {
+          "username": request.body.username
+        }
+      ]
+    },
+    "sort": [
+      {
+        "timestamp": "desc"
       }
-    });
+   ]
+  };
+
+  axios({
+      url: 'https://' + process.env.dbHost + '/user-mngt-app/_find',
+      method: 'post',
+      auth: {
+        username: process.env.dbHostServiceUsername,
+        password: process.env.dbHostServicePassword
+      },
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(JSON.stringify(query))
+      },
+      data: query
+    })
+    .then(res => {
+      if (res.data.docs.length != 0) {
+        // we take the last created entry that corresponds to the lastest request done by the user
+        let userRequest = res.data.docs[0];
+        // prepare create user request
+        var createUserReq = {
+          url: 'https://' + process.env.dbHost + '/user-mngt-app/',
+          method: 'post',
+          auth: {
+            username: process.env.dbHostServiceUsername,
+            password: process.env.dbHostServicePassword
+          },
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          data: {
+            username: request.body.username,
+            email: userRequest.email,
+            type: 'pwdReset',
+            timestamp: new Date()
+              .toISOString(),
+            app: 'mycellar'
+          }
+        }
+        // prepare sending mail to user
+        var sendMailReq = {
+          url: process.env.environment == 'dev' ? process.env.apiserver + ':' +
+            port + '/api/sendEMail' : process.env.apiserver + 'api/sendEMail',
+          method: 'POST',
+          data: {
+            to: userRequest.email,
+            subject: "Confirm your password reset request",
+            message: process.env.environment == 'dev' ?
+              "Click on the following URL to complete your registration : http://localhost:5001/processUserRequestConfirmation/" +
+              userRequest._id :
+              "Click on the following URL to complete your registration : https://localhost:5001/processUserRequestConfirmation/" +
+              userRequest._id
+          }
+        }
+        // prepare user state update 
+        var updateUserDataReq = {
+          url: process.env.environment == 'dev' ? process.env.apiserver + ':' +
+            port + '/api/upsertUserData' : process.env.apiserver + 'api/upsertUserData',
+          method: 'POST',
+          data: {
+            action: 'update',
+            username: userRequest.username,
+            state: 'resetPasswordPending'
+          }
+        }
+
+        axios.all([axios(createUserReq), axios(sendMailReq), axios(updateUserDataReq)])
+          .then(axios.spread((firstResponse, secondResponse, thirdResponse) => {
+            console.log(JSON.stringify(firstResponse.data), JSON.stringify(
+              secondResponse.data), JSON.stringify(thirdResponse.data));
+            return response.status(200)
+              .send({
+                message: "User " + request.body.username + "  password reset received",
+                translateKey: "pwdResetRequestOK",
+                registrationID: firstResponse.data.id
+              });
+          }))
+          .catch(error => handleError("resetPassword (combined)", error, response));
+
+      } else {
+        return response.status(404)
+          .send({
+            error: {
+              code: 'UsernameNotExist',
+              type: 'business',
+              subtype: 'user not found',
+              resource: '/api/resetPassword',
+              message: "username doesn't exist"
+            }
+          });
+      }
+    })
+    .catch(error => handleError("resetPassword", error, response));
 });
 
 // changePassword method
@@ -1013,8 +1078,11 @@ app.post('/api/changePassword', function(request, response, next) {
     return response.status(400)
       .send({
         error: {
-          type: 'missing request parameters',
-          title: 'No username'
+          code: 'NoUsername',
+          type: 'business',
+          subtype: 'missing request parameters',
+          resource: '/api/changePassword',
+          message: "No username"
         }
       });
   }
@@ -1023,8 +1091,11 @@ app.post('/api/changePassword', function(request, response, next) {
     return response.status(400)
       .send({
         error: {
-          type: 'missing request parameters',
-          title: 'No previous password'
+          code: 'NoPreviousPassword',
+          type: 'business',
+          subtype: 'missing request parameters',
+          resource: '/api/changePassword',
+          message: "No previous password"
         }
       });
   }
@@ -1033,8 +1104,11 @@ app.post('/api/changePassword', function(request, response, next) {
     return response.status(400)
       .send({
         error: {
-          type: 'missing request parameters',
-          title: 'No new password'
+          code: 'NoNewPassword',
+          type: 'business',
+          subtype: 'missing request parameters',
+          resource: '/api/changePassword',
+          message: "No new password"
         }
       });
   }
@@ -1053,7 +1127,7 @@ app.post('/api/changePassword', function(request, response, next) {
   };
 
   axios({
-      url: 'https://' + process.env.dbHost + '/app-users/_find',
+      url: 'https://' + process.env.dbHost + '/app-users-test/_find',
       method: 'post',
       auth: {
         username: process.env.dbHostServiceUsername,
@@ -1067,11 +1141,14 @@ app.post('/api/changePassword', function(request, response, next) {
     })
     .then(result => {
       if (result.data.docs.length == 0) {
-        return response.status(401)
+        return response.status(404)
           .send({
             error: {
-              type: 'user not found',
-              title: "username doesn't exist"
+              code: 'UsernameNotExist',
+              type: 'business',
+              subtype: 'user not found',
+              resource: '/api/changePassword',
+              message: "username doesn't exist"
             }
           });
       } else {
@@ -1092,100 +1169,158 @@ app.post('/api/changePassword', function(request, response, next) {
         if (hash.toString('hex') === user.password) {
           console.log("old password is correct");
           if (user.state == 'resetPasswordPending') {
-            return response.status(400)
+            return response.status(403)
               .send({
                 error: {
-                  type: 'reset password pending',
-                  title: "A password reset has been requested for this user.  Please complete reset process first."
+                  code: 'PendingResetPassword',
+                  type: 'business',
+                  subtype: 'reset password pending',
+                  resource: '/api/changePassword',
+                  message: "A password reset has been requested for this user.  Please complete reset process first."
                 }
               });
           } else {
             // Update user 's data state to "standard" and change password
+            var upsertUserDataReq = {
+              url: process.env.environment == 'dev' ? process.env.apiserver + ':' +
+                port + '/api/upsertUserData' : process.env.apiserver + '/api/upsertUserData',
+              method: 'post',
+              data: {
+                username: request.body.username,
+                action: 'update',
+                password: request.body.newPassword,
+                state: 'standard'
+              }
+            }
 
-            // TODO recalculate new hashed password based on user's salt value....
-
-            axios({
-                url: 'https://' + process.env.dbHost + '/app-users/',
-                method: 'post',
-                auth: {
-                  username: process.env.dbHostServiceUsername,
-                  password: process.env.dbHostServicePassword
-                },
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Content-Length': Buffer.byteLength(JSON.stringify(selector))
-                },
-                data: {
-                  username: user.username,
-                  password: request.body.newPassword,
-                  salt: user.salt,
-                  lastname: user.lastname || "",
-                  firstname: user.firstname || "",
-                  address: user.addres || "",
-                  email: user.email || "",
-                  phone: user.phone || "",
-                  state: 'standard',
-                  app: 'mycellar'
-                }
+            axios(upsertUserDataReq)
+              .then(upsertRes => {
+                return response.status(200)
+                  .send({
+                    message: "change password succesfull",
+                    translateKey: "updateUserPasswordOK",
+                    user: user
+                  });
               })
-              .then(result => {})
-              .catch(error => {
-                if (error.response) {
-                  // The request was made and the server responded with a status code that falls out of the range of 2xx
-                  console.log("[NodeJS - /processSignupRequest ]Something went wrong - status : " +
-                    error.response.status);
-                  response.status(error.response.status)
-                    .send(error.message)
-                } else if (error.request) {
-                  // The request was made but no response was received`error.request` is an instance of XMLHttpRequest in the browser and an instance of
-                  // http.ClientRequest in node.js
-                  console.log("[NodeJS - processSignupRequest]Something went wrong - request : " + error
-                    .request);
-                  response.status(500)
-                    .send(error.request)
-                } else {
-                  // Something happened in setting up the request that triggered an Error
-                  console.log("[NodeJS - processSignupRequest]Something went wrong - message : " + error
-                    .message);
-                  response.status(500)
-                    .send(error.message)
-                }
-              });
+              .catch(error => handleError("changePassword", error, response));
+
+            /*            var hash;
+                        try {
+                          hash = crypto.pbkdf2Sync(request.body.newPassword, user.salt, 10000, length,
+                            digest);
+                        } catch (e) {
+                          return response.status(500)
+                            .send({
+                              error: e
+                            });
+                        }
+                        axios({
+                            url: 'https://' + process.env.dbHost + '/app-users-test/',
+                            method: 'post',
+                            auth: {
+                              username: process.env.dbHostServiceUsername,
+                              password: process.env.dbHostServicePassword
+                            },
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Content-Length': Buffer.byteLength(JSON.stringify(selector))
+                            },
+                            data: {
+                              username: user.username,
+                              password: hash.toString('hex'),
+                              salt: user.salt,
+                              lastname: user.lastname || "",
+                              firstname: user.firstname || "",
+                              address: user.addres || "",
+                              email: user.email || "",
+                              phone: user.phone || "",
+                              state: 'standard',
+                              app: 'mycellar'
+                            }
+                          })
+                          .then(result => {
+                            return response.status(200)
+                              .send({
+                                message: "change password succesfull",
+                                translateKey: "updateUserPasswordOK",
+                                user: user
+                              });
+                          })
+                          .catch(error => handleError("changePassword", error, response));*/
           }
         } else {
-          response.status(400)
+          response.status(401)
             .send({
               error: {
-                type: 'BadPassword',
-                title: 'Wrong password'
+                code: 'BadPassword',
+                type: 'business',
+                subtype: 'wrong password',
+                resource: '/api/changePassword',
+                message: "Wrong password"
               }
             });
         }
 
       }
     })
-    .catch(error => {
-      if (error.response) {
-        // The request was made and the server responded with a status code that falls out of the range of 2xx
-        console.log("[NodeJS - /processSignupRequest ]Something went wrong - status : " +
-          error.response.status);
-        response.status(error.response.status)
-          .send(error.message)
-      } else if (error.request) {
-        // The request was made but no response was received`error.request` is an instance of XMLHttpRequest in the browser and an instance of
-        // http.ClientRequest in node.js
-        console.log("[NodeJS - processSignupRequest]Something went wrong - request : " + error
-          .request);
-        response.status(500)
-          .send(error.request)
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        console.log("[NodeJS - processSignupRequest]Something went wrong - message : " + error
-          .message);
-        response.status(500)
-          .send(error.message)
-      }
-    });
+    .catch(error => handleError("changePassword", error, response));
+});
+
+// updateUserData method
+// request body :
+// - username (mandatory)
+// - lastname
+// - firstname
+// - address
+// - email
+// - phone
+// returns either :
+// - Error
+// - {message "update user data successfull", translateKey}
+app.post('/api/updateUserData', function(request, response, next) {
+
+  if (!request.body.hasOwnProperty('username')) {
+    return response.status(400)
+      .send({
+        error: {
+          code: 'NoUsername',
+          type: 'business',
+          subtype: 'missing request parameters',
+          resource: '/api/updateUserData',
+          message: "No username"
+        }
+      });
+  }
+
+  var upsertUserDataReq = {
+    url: process.env.environment == 'dev' ? process.env.apiserver + ':' +
+      port + '/api/upsertUserData' : process.env.apiserver + '/api/upsertUserData',
+    method: 'post',
+    data: {
+      username: request.body.username,
+      action: "update",
+      lastname: request.body.lastname || "",
+      firstname: request.body.firstname || "",
+      address: request.body.address || "",
+      email: request.body.email || "",
+      phone: request.body.phone || "",
+      state: 'standard'
+    }
+  }
+
+  axios(upsertUserDataReq)
+    .then(upsertRes => {
+      return response.status(200)
+        .send({
+          message: "update user data successfull",
+          translateKey: "updateUserDataOK",
+          user: upsertRes.data
+        });
+    })
+    .catch(error =>
+      handleError("updateUserData", error, response)
+    );
+
 });
 
 // endpoint to 
@@ -1225,7 +1360,7 @@ app.post("/api/register", function(request, response, next) {
   };
 
   axios({
-      url: 'https://' + process.env.dbHost + '/app-users/_find',
+      url: 'https://' + process.env.dbHost + '/app-users-test/_find',
       method: 'post',
       auth: {
         username: process.env.dbHostServiceUsername,
@@ -1271,7 +1406,7 @@ app.post("/api/register", function(request, response, next) {
                 .then(res => {
                   response.send({
                     message: "User " + request.body.username + " registered",
-                    tranlateKey: "registrationOK"
+                    translateKey: "registrationOK"
                   });
                 })
                 .catch(error => {
@@ -1557,7 +1692,7 @@ app.post("/api/changeUserDataInUsersTable", function(request, response, next) {
   };
 
   axios({
-      url: 'https://' + process.env.dbHost + '/app-users/_find',
+      url: 'https://' + process.env.dbHost + '/app-users-test/_find',
       method: 'post',
       auth: {
         username: process.env.dbHostServiceUsername,
@@ -1714,7 +1849,7 @@ app.post('/api/loginold', function(request, response, next) {
 
   var options = {
     host: process.env.dbHost,
-    path: '/app-users/_find',
+    path: '/app-users-test/_find',
     method: 'POST',
     rejectUnauthorized: false,
     auth: process.env.dbHostServiceUsername + ":" + process.env.dbHostServicePassword,
@@ -1793,6 +1928,11 @@ app.post('/api/loginold', function(request, response, next) {
   req.end();
 
 });
+
+app.get("/api/test", function(request, response, next) {
+  let result = funB();
+  console.log("/api/test result :" + JSON.stringify(result));
+})
 
 //serve static file (index.html, images, css)
 app.use(express.static(__dirname + '/../client/www'));
