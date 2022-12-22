@@ -24,7 +24,7 @@
     "express": "^4.15.x",
     "fast-html-parser": "^1.0.1",
     "gmail-send": "^1.2.14",
-    "jsonwebtoken": "^8.5.0"
+    "jsonwebtoken": "^9.0.0"
   },
   "author": "Philippe Destrais",
   "license": "Apache-2.0"
